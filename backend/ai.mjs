@@ -15,7 +15,9 @@ export async function analyze(caseData, evidence, config = process.env) {
   if (config.AI_PROVIDER === "damage" && evidence.length) {
     try {
       const findings = [];
+      let modelId = null;
       const classes = new Set([
+        "damage",
         "crack",
         "crash",
         "dent",
@@ -42,6 +44,14 @@ export async function analyze(caseData, evidence, config = process.env) {
         );
         if (!response.ok) throw new Error("Damage detector unavailable");
         const result = await response.json();
+        if (
+          ![
+            "damagelens-yolo-2b9ae06",
+            "artemxdata-yolov8n-cardd-e4879d4",
+          ].includes(result.model)
+        )
+          throw new Error("Unknown damage model");
+        modelId = result.model;
         if (!Array.isArray(result.detections) || result.detections.length > 30)
           throw new Error("Invalid detector output");
         for (const d of result.detections) {
@@ -68,7 +78,7 @@ export async function analyze(caseData, evidence, config = process.env) {
       return {
         ...base,
         mode: "ai",
-        model: "artemxdata-yolov8n-cardd-e4879d4",
+        model: modelId,
         findings,
         missing: [
           ...base.missing,

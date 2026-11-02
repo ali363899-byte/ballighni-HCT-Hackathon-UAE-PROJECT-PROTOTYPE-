@@ -257,7 +257,22 @@ async function detail(id, synthetic = false) {
       img.alt = `Evidence photo ${e.id}`;
       const caption = document.createElement("figcaption");
       caption.textContent = e.id;
-      fig.append(img, caption);
+      const frame = document.createElement("div");
+      frame.className = "photo-frame";
+      frame.append(img);
+      for (const finding of c.analysis?.findings || []) {
+        if (finding.source_id !== e.id || !finding.box) continue;
+        const [x1, y1, x2, y2] = finding.box;
+        const mark = document.createElement("span");
+        mark.className = "damage-box";
+        mark.style.left = `${x1 * 100}%`;
+        mark.style.top = `${y1 * 100}%`;
+        mark.style.width = `${(x2 - x1) * 100}%`;
+        mark.style.height = `${(y2 - y1) * 100}%`;
+        mark.title = finding.observation;
+        frame.append(mark);
+      }
+      fig.append(frame, caption);
       $("#evidence")?.append(fig);
     }
   const act = async (button, fn) => {
@@ -309,19 +324,17 @@ async function detail(id, synthetic = false) {
     $("#additional-photo").onchange = (e) => {
       if (e.target.files[0]) act(e.target, () => upload(id, e.target.files[0]));
     };
-  document
-    .querySelectorAll(".link-action")
-    .forEach(
-      (button) =>
-        (button.onclick = () =>
-          act(button, () =>
-            post(`/cases/${id}/link`, {
-              other_id: button.dataset.other,
-              decision: button.dataset.decision,
-              reason: $("#link-reason").value,
-            }),
-          )),
-    );
+  document.querySelectorAll(".link-action").forEach(
+    (button) =>
+      (button.onclick = () =>
+        act(button, () =>
+          post(`/cases/${id}/link`, {
+            other_id: button.dataset.other,
+            decision: button.dataset.decision,
+            reason: $("#link-reason").value,
+          }),
+        )),
+  );
   if ($("#refresh-case"))
     $("#refresh-case").onclick = () =>
       detail(id).catch((e) => toast(e.message, true));
