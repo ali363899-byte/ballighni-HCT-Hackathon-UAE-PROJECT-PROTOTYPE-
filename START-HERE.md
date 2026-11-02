@@ -5,6 +5,7 @@
 | I want to…                                 | Open this                                                                                          |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | Run the website/backend                    | [Quick setup](README.md#start-here-in-vs-code), then double-click `START-BALLIGHNI.cmd` on Windows |
+| Share free with both phones                | [Temporary HTTPS guide](docs/TEMPORARY-SHARING.md), then START-SHARED-BALLIGHNI.cmd                |
 | Install the Android app                    | [Android guide](docs/ANDROID.md)                                                                   |
 | Fix “backend not connected”                | [Connection troubleshooting](docs/CONNECTIONS.md)                                                  |
 | Understand each folder                     | [Repository map](docs/REPOSITORY-MAP.md)                                                           |

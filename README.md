@@ -86,3 +86,6 @@ Tests cover emergency/consent validation, upload format and duplicate rejection,
 The full app runs on a Node.js 24 server or the included Docker image. Mount persistent storage at `/app/data`, terminate HTTPS at your host, set `REVIEWER_SETUP_CODE` to a strong private random value, and configure exact `ALLOWED_ORIGINS` for the website and `https://localhost` for the Android wrapper. The included Docker image runs manual mode; damage mode needs the separate Python service.
 
 The static frontend can be hosted separately, then connected through **Connection settings**. A static website host alone cannot run the SQLite backend. Public deployment requires a chosen backend host and persistent storage. Use synthetic or permitted data until security, retention and operational review are complete.
+
+
+Free phone sharing: run `START-SHARED-BALLIGHNI.cmd` on the host Windows computer. See [temporary HTTPS sharing](docs/TEMPORARY-SHARING.md). Keep the computer awake; both phones must use the current printed URL. No paid cloud upgrade was made.

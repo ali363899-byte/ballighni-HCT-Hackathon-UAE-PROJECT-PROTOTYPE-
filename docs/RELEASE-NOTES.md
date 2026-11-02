@@ -1,11 +1,9 @@
-# Ballighni 1.1.0 · Fantastic Four prototype
+# Ballighni 1.1.1 · Phone connection update
 
-Adds People of Determination preferences, red 999/997/998 emergency links, English/Arabic core controls, private participant invitations, independent testimony, reviewer-approved joint reports, and local simulated department/insurance receipts.
+Adds a working temporary HTTPS sharing session and START-SHARED-BALLIGHNI.cmd. Both phones and the website use the same local cases and trained damage AI while the host computer remains awake and running. No paid cloud upgrade was made.
 
-The backend starts independently of AI warmup; endpoint testing and disconnection messages are improved. Pretrained damage/image inference and source-linked findings were verified through the live API. Eight tests passed; dependency audit reported zero vulnerabilities.
+The APK is prefilled with the session URL used for live verification. After restarting sharing, update the new address in Connection settings on both phones. No APK rebuild is required for a new URL. The website uses its current backend origin automatically.
 
-Install Ballighni-Android.apk directly on Android 7+ without Google Play. This is a debug-signed test build. No physical-device test was performed. Live reporting/AI and synchronization require a reachable shared HTTPS backend configured in Connection settings. No shared host is deployed; localhost on a phone is not this computer.
+Verification: eight automated tests passed; HTTPS registration/login, upload and pretrained image analysis passed. The Android APK is a debug-signed prototype; physical-device testing remains outstanding. All 1.1.0 accessibility and joint-report features are included. Department and insurance routing remains a local simulation.
 
-Both teammates now have access to the private repository. Open ballighni.code-workspace in VS Code and read START-HERE.md. Source archives exclude credentials, databases, personal evidence, signing keys and model weights; pinned model downloaders are included.
-
-Department/insurance receipts are local simulations. The app does not determine fault, injuries, roadworthiness or insurance outcomes. See docs/DELIVERY-REPORT.md and docs/PDF-CHECKLIST.md for verification and remaining limits.
+See START-HERE.md, docs/TEMPORARY-SHARING.md, docs/DELIVERY-REPORT.md and docs/PDF-CHECKLIST.md. Credentials, runtime data, evaluation photos, model weights and tunnel executable are excluded from the source archive. abdulrahmanabuseedo is an accepted collaborator.

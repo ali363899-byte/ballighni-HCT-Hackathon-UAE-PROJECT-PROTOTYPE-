@@ -23,3 +23,7 @@ Use separate app accounts for the participants. GitHub collaborator permission i
 Network errors do not erase a still-valid session. Confirmed case views refresh while connected; active draft editing is not overwritten. Reports already saved on the backend remain there. A stopped computer, expired temporary URL or unavailable hosting service still needs to be brought back online; the app cannot fix that from the phone.
 
 Real emergency calling links and the written emergency guidance remain available in the bundled interface. The app does not dispatch emergency services.
+
+## Selected free sharing setup
+
+Use START-SHARED-BALLIGHNI.cmd on the host Windows computer. It prints a temporary HTTPS address for both phones and the website. Follow TEMPORARY-SHARING.md. When sharing restarts the address changes; enter the new URL in both phones. Saved local cases remain in data/. The 1.1.1 APK is prefilled for the session active at release time.

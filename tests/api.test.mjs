@@ -53,6 +53,12 @@ after(
     ),
 );
 test("complete reporting and human review lifecycle; access and validation", async () => {
+  const webConfig = await fetch(url.replace(/\/api$/, "/config.js"));
+  assert.equal(webConfig.status, 200);
+  assert.equal(
+    await webConfig.text(),
+    'window.BALLIGHNI_CONFIG = { apiUrl: "" };\n',
+  );
   const owner = await account("driver_one");
   const other = await account("witness_two");
   const reviewer = await account("reviewer_three", "test-only-reviewer-code");

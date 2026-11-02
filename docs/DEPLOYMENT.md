@@ -20,26 +20,25 @@ The existing `Dockerfile` is a smaller manual-mode backend; the full damage-infe
 
 Only use synthetic or explicitly permitted data during prototype evaluation. This package does not provide production security certification, commercial model/data rights or authorization to transmit information to real agencies or insurers.
 
-
 ## Hosted deployment selected (2 November 2026)
 
 The owner has now authorized a shared hosted HTTPS backend, with no paid service or upgrade without approval. Railway was selected for account connection and an eligibility check, not yet claimed as deployed. A Railway account must be connected before account resources can be inspected or created. Browser-only setup is supported: no desktop software or ChatGPT plugin installation is required. The owner prefers the browser path; the GitHub sign-in authorization is awaiting confirmation.
 
 ### Concrete service settings
 
-| Setting | Value |
-|---|---|
-| Source | Private GitHub repository ali363899-byte/ballighni, main |
-| Dockerfile | Dockerfile.prototype (not the manual-only Dockerfile) |
-| Public service | One replica; website and API on the same generated HTTPS domain |
-| Target port | 7860, or the platform-provided PORT |
-| Health path | /api/health |
-| Persistent volume | Mount at /app/data before first live use |
-| DATA_DIR | /app/data |
-| PUBLIC_ORIGIN | Exact generated https:// domain, with no path or trailing slash |
-| REVIEWER_SETUP_CODE | Privately generated random secret stored in provider variables |
-| OMP_NUM_THREADS | 1 for the small CPU prototype |
-| Paid upgrade | Not authorized; stop and explain the exact price if trial is unavailable/insufficient |
+| Setting             | Value                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| Source              | Private GitHub repository ali363899-byte/ballighni, main                              |
+| Dockerfile          | Dockerfile.prototype (not the manual-only Dockerfile)                                 |
+| Public service      | One replica; website and API on the same generated HTTPS domain                       |
+| Target port         | 7860, or the platform-provided PORT                                                   |
+| Health path         | /api/health                                                                           |
+| Persistent volume   | Mount at /app/data before first live use                                              |
+| DATA_DIR            | /app/data                                                                             |
+| PUBLIC_ORIGIN       | Exact generated https:// domain, with no path or trailing slash                       |
+| REVIEWER_SETUP_CODE | Privately generated random secret stored in provider variables                        |
+| OMP_NUM_THREADS     | 1 for the small CPU prototype                                                         |
+| Paid upgrade        | Not authorized; stop and explain the exact price if trial is unavailable/insufficient |
 
 The container initializes the volume's top-level ownership, then runs the API and AI as the unprivileged node user. Inference config also uses DATA_DIR. Do not upload the local data folder or .env: the host starts with an empty prototype database. Existing local synthetic cases are not migrated automatically.
 
@@ -56,3 +55,7 @@ Current Railway docs deprecate railway.json / railway.toml for new services. Con
 5. Restart the service and verify the same saved accounts/cases still exist on the volume.
 6. Build a new APK with the tested HTTPS URL and verify its manifest/signature. Test on physical Android hardware when available.
 7. Record the actual website URL, plan limits, AI result, persistence check and APK release. Until those checks pass, do not mark hosted phone support complete.
+
+## Final choice: temporary sharing
+
+The actual Railway account dashboard reported that new-account trials are paused and required an upgrade. No upgrade/payment was made. The owner selected free temporary HTTPS sharing while this computer stays on. See TEMPORARY-SHARING.md. The shared launcher starts the existing Node/SQLite and Python AI locally, allows only the generated public origin, and forwards only the web/API port. This supersedes the uncompleted Railway deployment path above; it is not a persistent cloud host.

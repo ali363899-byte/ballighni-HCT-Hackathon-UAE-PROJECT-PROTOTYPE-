@@ -1,4 +1,4 @@
-# Ballighni 1.1.0 delivery report
+# Ballighni 1.1.1 delivery report
 
 Fantastic Four · 2 November 2026
 
@@ -50,5 +50,12 @@ The bundled overview, safety guidance and synthetic example work without a serve
 
 No shared HTTPS host has been deployed. The owner's previous instruction was GitHub/local only; revised hosting preference was requested. Docker deployment examples are prepared, but the full Node/Python container has not been built or deployed here. Real agency/insurer transmission needs authorized endpoints and agreements. These limitations must remain visible during demonstrations.
 
-
 Hosting update: the owner subsequently selected a shared HTTPS backend, with no paid service without approval. Browser-only Railway setup is prepared; no desktop/plugin installation is needed. Provider sign-in authorization and actual deployment verification remain outstanding. See DEPLOYMENT.md for exact settings.
+
+## 1.1.1 temporary HTTPS connection update
+
+The Railway account was created through the browser with the owner authorizing GitHub sign-in and accepting the provider agreement. Its dashboard then reported new-account trials paused. No paid upgrade was made. The owner selected a free temporary HTTPS link from this computer.
+
+The shared launcher and official checksum-verified portable cloudflared helper were exercised locally. Occupied-port protection was verified. The final HTTPS session passed registration/login, image upload, real pretrained inference and source-linked output. The backend reported ai_available=true. Website sign-in uses the same local database. Eight automated tests passed again, including current-origin web configuration. The Android 1.1.1 build is configured with the tested session URL; its connection can be updated without rebuilding after the temporary URL changes.
+
+Keep the host computer awake and the shared launcher running. This is temporary development sharing, with no uptime guarantee or hosted-data migration. Physical Android hardware testing remains outstanding. Read TEMPORARY-SHARING.md for restart/stop instructions.

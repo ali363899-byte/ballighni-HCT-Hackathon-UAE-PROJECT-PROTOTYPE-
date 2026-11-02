@@ -645,6 +645,17 @@ export const server = http.createServer(async (req, res) => {
       return;
     }
     if (!["GET", "HEAD"].includes(req.method)) fail(405, "Method not allowed.");
+    // Websites served by this API always use their own origin. A URL baked into
+    // an Android build must not pin the website to an expired temporary tunnel.
+    if (url.pathname === "/config.js") {
+      res.setHeader("Content-Type", "text/javascript; charset=utf-8");
+      res.end(
+        req.method === "HEAD"
+          ? undefined
+          : 'window.BALLIGHNI_CONFIG = { apiUrl: "" };\n',
+      );
+      return;
+    }
     const web = existsSync(path.join(root, "dist/index.html"))
       ? path.join(root, "dist")
       : path.join(root, "frontend");
