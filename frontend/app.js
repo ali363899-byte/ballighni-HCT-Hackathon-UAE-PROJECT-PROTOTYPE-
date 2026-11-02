@@ -241,6 +241,25 @@ async function detail(id, synthetic = false) {
     `<div class="topline"><div><div class="eyebrow">${synthetic ? "SYNTHETIC EXAMPLE · READ ONLY" : "CASE FILE"}</div><h1>${escape(c.id)}</h1><p>${escape(c.location)}</p></div>${badge(c.status)}</div>${synthetic ? '<div class="notice warning">This example contains fictional text only. No live AI was run and no official report has been created. <a href="#report">Start your own report →</a></div>' : ""}<div class="detail-grid"><div><section class="panel"><dl class="meta"><div><dt>REPORT TYPE</dt><dd>${escape(c.reporter_role)}</dd></div><div><dt>INCIDENT TIME</dt><dd>${date(c.event_time)}</dd></div><div><dt>RECEIVED</dt><dd>${date(c.created_at)}</dd></div></dl><h3>Reporter’s account</h3><p class="narrative">${escape(c.narrative)}</p><h3>Evidence</h3><div id="evidence" class="evidence-grid"></div>${!c.evidence.length ? '<p class="muted">No photos attached. Visual damage cannot be established.</p>' : ""}${!synthetic && ((c.status === "draft" && !reviewer) || (c.status === "more_info" && !reviewer)) ? '<label class="upload-zone">Add permitted evidence<input type="file" id="additional-photo" accept="image/jpeg,image/png,image/webp"></label>' : ""}</section><section class="panel"><div class="section-head"><h3>Evidence findings</h3><span>${c.analysis?.mode === "ai" ? "AI observations · unverified" : "Manual drafting mode"}</span></div>${c.analysis?.warning ? `<div class="notice warning">${escape(c.analysis.warning)}</div>` : ""}${(c.analysis?.findings || []).map((f) => `<article class="finding"><p>${escape(f.observation)}</p><small>Source: ${escape(f.source_id)}${f.confidence !== undefined ? ` · Model score: ${Math.round(f.confidence * 100)}% (not calibrated certainty)` : ""}</small><p class="muted">${escape(f.uncertainty)}</p></article>`).join("") || "<p>No automated damage observation is available. This does not mean the vehicle is undamaged.</p>"}${c.analysis?.model ? `<p class="muted">Model: ${escape(c.analysis.model)}</p>` : ""}<div class="notice">${escape(c.analysis?.limitation || "Prepare a draft to organize known and missing information. AI does not decide fault, injuries or roadworthiness.")}</div>${(c.analysis?.missing || []).map((m) => `<p class="muted">○ ${escape(m)}</p>`).join("")}${!synthetic && c.status === "draft" && !reviewer ? '<button class="secondary" id="analyze">Prepare / retry analysis ↗</button>' : ""}</section><section class="panel"><h3>${c.status === "draft" ? "Check and confirm your draft" : "Confirmed report"}</h3>${c.status === "draft" && !synthetic && !reviewer ? `<form id="confirm-form"><label>Edit the report before submitting<textarea name="report" required minlength="10" maxlength="6000">${escape(c.analysis?.narrative || "")}</textarea></label><label class="checkbox"><input type="checkbox" required><span>I checked this draft and understand that it is a preliminary account for human review.</span></label><button class="primary" ${!c.analysis ? "disabled" : ""}>Confirm & submit →</button></form>` : `<p class="narrative">${escape(c.confirmed_report || c.analysis?.narrative || "Draft has not been confirmed.")}</p>`}</section>${reviewer ? `<section class="panel"><h3>Possible related reports</h3><p>Suggestions use entered location and time. Accepting a link preserves both reports; it does not merge accounts or determine fault.</p>${(c.matches || []).map((m) => `<div class="finding"><a href="#case/${m.id}"><strong>${escape(m.id)} ↗</strong></a><p>${escape(m.reason)}</p><span class="badge">${escape(m.decision)}</span>${m.decision === "pending" ? `<div class="button-row"><button class="secondary link-action" data-other="${m.id}" data-decision="accepted">Accept link</button><button class="secondary link-action" data-other="${m.id}" data-decision="rejected">Reject link</button></div>` : ""}</div>`).join("") || '<p class="muted">No same-location reports within 30 minutes were found.</p>'}<label>Reason for a match decision<input id="link-reason" minlength="5" maxlength="2000" placeholder="Record why these accounts may or may not relate"></label></section>` : ""}</div><aside><section class="panel"><h3>Case timeline</h3><ol class="timeline">${c.updates.map((u) => `<li><strong>${escape(label(u.action))}</strong><p>${escape(u.reason)}</p><time>${date(u.created_at)}</time></li>`).join("")}</ol>${!synthetic ? '<button class="text-button" id="refresh-case">Refresh updates ↻</button>' : ""}</section>${reviewer && c.status !== "closed" ? `<section class="panel"><h3>Next review action</h3><form id="status-form"><label>Next status<select name="status" required>${({ submitted: ["review", "more_info"], review: ["more_info", "closed"], more_info: ["review"] }[c.status] || []).map((s) => `<option value="${s}">${label(s)}</option>`).join("")}</select></label><label>Reason / request<textarea name="reason" required minlength="5" maxlength="2000" placeholder="Explain the action. Requests are visible to the reporter."></textarea></label><button class="primary">Save review action →</button></form></section>` : ""}${!synthetic && !reviewer && c.status === "more_info" ? '<section class="panel"><h3>Respond to the request</h3><p>Read the reviewer’s request in your timeline. Add photos if needed, then reply.</p><form id="response-form"><label>Your response<textarea name="message" required minlength="5" maxlength="2000"></textarea></label><button class="primary">Send for review →</button></form></section>' : ""}<section class="panel trust-panel"><h3>Keep a copy.</h3><p>Your case export includes the structured report and timeline. Images remain in the protected case.</p><button class="secondary" id="export-case">Export case JSON ↓</button></section></aside></div>${safety}`;
   for (const url of imageUrls) URL.revokeObjectURL(url);
   imageUrls = [];
+  const findingsPanel = [...document.querySelectorAll(".panel")].find(
+    (p) => p.querySelector("h3")?.textContent === "Evidence findings",
+  );
+  if (findingsPanel) {
+    const notes = document.createElement("div");
+    notes.innerHTML = (c.review_corrections || [])
+      .map(
+        (n) =>
+          `<article class="finding"><strong>Human review note</strong><p>${escape(n.correction)}</p><small>Source: ${escape(n.source_id)} · ${date(n.created_at)}</small></article>`,
+      )
+      .join("");
+    if (
+      reviewer &&
+      ["review", "more_info"].includes(c.status) &&
+      c.evidence.length
+    )
+      notes.innerHTML += `<form id="correction-form"><h3>Correct or qualify a finding</h3><label>Evidence source<select name="source_id">${c.evidence.map((e) => `<option value="${escape(e.id)}">${escape(e.id)}</option>`).join("")}</select></label><label>Human review note<textarea name="correction" required minlength="5" maxlength="2000" placeholder="Explain what the original evidence supports or does not support."></textarea></label><button class="secondary">Save human correction →</button></form>`;
+    findingsPanel.append(notes);
+  }
   if (!synthetic)
     for (const e of c.evidence) {
       const response = await fetch(
@@ -285,6 +304,18 @@ async function detail(id, synthetic = false) {
       button.disabled = false;
     }
   };
+  if ($("#correction-form"))
+    $("#correction-form").onsubmit = (e) => {
+      e.preventDefault();
+      act(e.submitter, () =>
+        api(`/cases/${id}/findings`, {
+          method: "PATCH",
+          body: JSON.stringify(
+            Object.fromEntries(new FormData(e.currentTarget)),
+          ),
+        }),
+      );
+    };
   if ($("#analyze"))
     $("#analyze").onclick = (e) =>
       act(e.currentTarget, () => post(`/cases/${id}/analyze`));

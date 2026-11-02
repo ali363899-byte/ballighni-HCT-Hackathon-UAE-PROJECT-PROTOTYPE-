@@ -174,6 +174,48 @@ test("complete reporting and human review lifecycle; access and validation", asy
     ).data.status,
     "review",
   );
+  const evidenceId = analysis.data.evidence[0].id;
+  assert.equal(
+    (
+      await call(
+        `/cases/${id}/findings`,
+        "PATCH",
+        {
+          source_id: evidenceId,
+          correction: "A citizen cannot issue a review correction.",
+        },
+        owner,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        `/cases/${id}/findings`,
+        "PATCH",
+        {
+          source_id: "forged-source",
+          correction: "Invalid reference should be rejected.",
+        },
+        reviewer,
+      )
+    ).status,
+    400,
+  );
+  const corrected = await call(
+    `/cases/${id}/findings`,
+    "PATCH",
+    {
+      source_id: evidenceId,
+      correction:
+        "Synthetic test image has no verified damage. Automated observations require independent review.",
+    },
+    reviewer,
+  );
+  assert.equal(corrected.status, 200);
+  assert.equal(corrected.data.review_corrections[0].source_id, evidenceId);
+  assert.equal(corrected.data.updates.at(-1).action, "finding_corrected");
   const witness = await call(
     "/cases",
     "POST",

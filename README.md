@@ -37,7 +37,7 @@ Use `npm run dev` during backend development. VS Code tasks are available under 
 
 ## Enable the pretrained damage model
 
-The project integrates the trained YOLOv8n checkpoint from [artemxdata/Car-Damage-Assessment-AI](https://github.com/artemxdata/Car-Damage-Assessment-AI), pinned to a source revision and SHA-256 checksum. It detects possible visible damage classes; it does not reconstruct accidents or determine liability. See [AI-MODEL.md](docs/AI-MODEL.md) for provenance, limitations and licensing.
+The default adapter uses the trained YOLOv8n damage checkpoint from [artemxdata/Car-Damage-Assessment-AI](https://github.com/artemxdata/Car-Damage-Assessment-AI), pinned to an exact revision and SHA-256 checksum. It returns possible visible damage classes, regions and model scores. It does not reconstruct accidents, assess injuries or determine liability. See [AI-MODEL.md](docs/AI-MODEL.md) for measured smoke tests, limitations and licensing.
 
 Use **Python 3.12** for the AI environment:
 
@@ -52,6 +52,10 @@ npm run start:ai
 ```
 
 Stop the plain `npm start` server before starting AI mode. The runner starts a private loopback inference service and the app together. If Python is elsewhere, set `AI_PYTHON` in `.env`. Without the model, `npm start` works with honest manual drafts and no fabricated damage findings. An optional Ollama adapter is also included; it requires explicit `AI_PROVIDER=ollama`, Ollama and a downloaded vision model.
+
+An optional ONNX adapter is included for lower-overhead evaluation: install `ai/requirements-onnx.txt`, run `node scripts/download-onnx-model.mjs`, and set `DAMAGE_MODEL_PATH=ai/models/damage-detector.onnx`. That checkpoint exposes only a generic damage class and missed a damaged-car smoke-test image at the default threshold, so it is not the default. The ONNX setup does not require PyTorch.
+
+For phone-width browser QA, run `npm run preview:phone` and open `http://127.0.0.1:3001/phone-preview.html`. This is a static layout preview, not an Android emulator or a substitute for the full backend.
 
 ## Android APK — no Google Play required
 

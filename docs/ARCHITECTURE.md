@@ -15,24 +15,25 @@ The frontend uses HTML, CSS and native JavaScript modules. This keeps the screen
 
 All request bodies are JSON. Protected routes require `Authorization: Bearer <session-token>`; tokens expire after 12 hours and only their SHA-256 hashes are stored. Passwords are salted and hashed with scrypt.
 
-| Method | Route                                    | Access / behavior                                    |
-| ------ | ---------------------------------------- | ---------------------------------------------------- |
-| GET    | `/api/health`                            | Service status and AI provider                       |
-| POST   | `/api/auth/register`                     | Citizen account, or reviewer with private setup code |
-| POST   | `/api/auth/login`                        | Issue expiring session                               |
-| POST   | `/api/auth/logout`                       | Invalidate session                                   |
-| GET    | `/api/me`                                | Current user                                         |
-| POST   | `/api/cases`                             | Create draft after safety + consent validation       |
-| GET    | `/api/cases`                             | Own cases; reviewers see submitted cases             |
-| GET    | `/api/cases/{id}`                        | Owner or reviewer only                               |
-| POST   | `/api/cases/{id}/evidence`               | Base64 photo, consent, size and image validation     |
-| GET    | `/api/cases/{id}/evidence/{evidence_id}` | Protected normalized JPEG                            |
-| POST   | `/api/cases/{id}/analyze`                | Owner prepares a draft; AI can fail to manual mode   |
-| POST   | `/api/cases/{id}/submit`                 | Owner confirms edited report                         |
-| PATCH  | `/api/cases/{id}/status`                 | Reviewer-only transition with reason                 |
-| POST   | `/api/cases/{id}/respond`                | Owner responds to information request                |
-| POST   | `/api/cases/{id}/link`                   | Reviewer accepts/rejects heuristic suggestion        |
-| GET    | `/api/cases/{id}/export`                 | Authorized case JSON export                          |
+| Method | Route                                    | Access / behavior                                     |
+| ------ | ---------------------------------------- | ----------------------------------------------------- |
+| GET    | `/api/health`                            | Service status and AI provider                        |
+| POST   | `/api/auth/register`                     | Citizen account, or reviewer with private setup code  |
+| POST   | `/api/auth/login`                        | Issue expiring session                                |
+| POST   | `/api/auth/logout`                       | Invalidate session                                    |
+| GET    | `/api/me`                                | Current user                                          |
+| POST   | `/api/cases`                             | Create draft after safety + consent validation        |
+| GET    | `/api/cases`                             | Own cases; reviewers see submitted cases              |
+| GET    | `/api/cases/{id}`                        | Owner or reviewer only                                |
+| POST   | `/api/cases/{id}/evidence`               | Base64 photo, consent, size and image validation      |
+| GET    | `/api/cases/{id}/evidence/{evidence_id}` | Protected normalized JPEG                             |
+| POST   | `/api/cases/{id}/analyze`                | Owner prepares a draft; AI can fail to manual mode    |
+| POST   | `/api/cases/{id}/submit`                 | Owner confirms edited report                          |
+| PATCH  | `/api/cases/{id}/status`                 | Reviewer-only transition with reason                  |
+| PATCH  | `/api/cases/{id}/findings`               | Audited human correction linked to an evidence source |
+| POST   | `/api/cases/{id}/respond`                | Owner responds to information request                 |
+| POST   | `/api/cases/{id}/link`                   | Reviewer accepts/rejects heuristic suggestion         |
+| GET    | `/api/cases/{id}/export`                 | Authorized case JSON export                           |
 
 ## Lifecycle
 

@@ -310,7 +310,7 @@ async function api(req, url, res) {
     return fullCase(c, user);
   }
   const match = route.match(
-    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|submit|status|link|respond|export)(?:\/([a-f0-9-]+))?)?$/,
+    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|submit|status|link|respond|export|findings)(?:\/([a-f0-9-]+))?)?$/,
   );
   if (!match) fail(404, "Endpoint not found.");
   const [, id, action, eid] = match;
@@ -443,6 +443,32 @@ async function api(req, url, res) {
     transaction(() => {
       save(c);
       audit(id, user, "information_provided", response);
+    });
+    return fullCase(c, user);
+  }
+  if (action === "findings" && method === "PATCH") {
+    if (user.role !== "reviewer") fail(403, "Reviewer access is required.");
+    if (!["review", "more_info"].includes(c.status))
+      fail(
+        409,
+        "Start review before recording a correction. Closed cases cannot change.",
+      );
+    const b = await body(req);
+    if (!evidenceList(id).some((e) => e.id === b.source_id))
+      fail(400, "Select an evidence source from this case.");
+    const correction = text(b.correction, "Human correction", 5, 2000);
+    c.review_corrections = [
+      ...(c.review_corrections || []),
+      {
+        source_id: b.source_id,
+        correction,
+        created_at: now(),
+        actor_role: "reviewer",
+      },
+    ];
+    transaction(() => {
+      save(c);
+      audit(id, user, "finding_corrected", `${b.source_id}: ${correction}`);
     });
     return fullCase(c, user);
   }

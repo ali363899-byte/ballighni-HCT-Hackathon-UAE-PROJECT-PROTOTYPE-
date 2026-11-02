@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 25px 16px;
+  background: #e5ebdf;
+  font:
+    14px "Segoe UI",
+    sans-serif;
+  color: #234c3b;
+  text-align: center;
+}
+header {
+  height: auto;
+  padding: 0;
+  margin: auto;
+  max-width: 440px;
+  border: 0;
+  background: transparent;
+  display: block;
+}
+header p {
+  font-size: 11px;
+  color: #69825e;
+  line-height: 1.8;
+}
+iframe {
+  display: block;
+  width: 390px;
+  height: 844px;
+  max-width: 100%;
+  border: 1px solid #adbea1;
+  border-radius: 20px;
+  margin: 22px auto 14px;
+  box-shadow: 0 15px 40px #21452a22;
+  background: #f5f6f1;
+}
+.foot {
+  max-width: 390px;
+  margin: auto;
+  font-size: 11px;
+  color: #728367;
+  line-height: 1.8;
+}

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
-MODEL_PATH = Path(os.environ.get('DAMAGE_MODEL_PATH', ROOT / 'models' / 'damage-detector.onnx'))
+MODEL_PATH = Path(os.environ.get('DAMAGE_MODEL_PATH', ROOT / 'models' / 'damage-yolov8n.pt'))
 TOKEN = os.environ.get('BALLIGHNI_AI_TOKEN')
 if not TOKEN:
     raise RuntimeError('Use npm run start:ai to supply the private inference token.')

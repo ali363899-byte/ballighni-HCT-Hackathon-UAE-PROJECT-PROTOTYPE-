@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ballighni · Android layout preview</title>
+    <link rel="stylesheet" href="phone-preview.css" />
+    <script src="phone-preview.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <strong>Ballighni · Phone preview</strong>
+      <p id="dimensions">
+        390 × 844 CSS pixels · responsive layout test, not an Android emulator
+      </p>
+      <nav aria-label="Test phone widths">
+        <a href="?width=320">320px</a> · <a href="?width=360">360px</a> ·
+        <a href="?width=390">390px</a> · <a href="?width=412">412px</a>
+      </nav>
+    </header>
+    <iframe
+      src="index.html#home"
+      title="Ballighni phone-sized application"
+      width="390"
+      height="844"
+    ></iframe>
+    <p class="foot">
+      Fantastic Four · Static layout and synthetic-case preview. Use the full
+      app for accounts. Android hardware testing is separate.
+    </p>
+  </body>
+</html>
