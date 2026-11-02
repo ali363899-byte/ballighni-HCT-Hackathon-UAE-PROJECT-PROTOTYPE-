@@ -79,7 +79,7 @@ The overview and synthetic example are bundled. Accounts, case persistence, uplo
 
 The website source is on GitHub and the full app runs locally. A shared, continuously available HTTPS backend has not been deployed. Both teammates need one backend to see the same live cases; GitHub synchronizes code, not the SQLite database.
 
-A static Sites frontend was prepared, but automatic approval review rejected publication to a separate third-party hosting destination because the user's authorization covered GitHub. It remains unpublished. Publishing that frontend would not, by itself, host the Node/SQLite/Python backend. A backend host, persistent disk, TLS and an approved deployment configuration are still needed.
+A static Sites frontend was prepared, but automatic approval review rejected publication to a separate third-party hosting destination because the user's authorization covered GitHub. The owner subsequently chose **GitHub and local app only**, so it remains unpublished by request. A backend host, persistent disk, TLS and an approved deployment configuration are still needed for shared live phone use. A static frontend host alone would not run the Node/SQLite/Python backend.
 
 The prototype also needs operational retention/deletion tools, backups, account recovery, reviewer revocation, monitoring and independent security review before real personal evidence is used. SQLite audit triggers protect normal API behavior, but a database administrator remains trusted.
 
