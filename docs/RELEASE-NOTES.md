@@ -1,23 +1,11 @@
-# Ballighni · Fantastic Four · Prototype
+# Ballighni 1.1.0 · Fantastic Four prototype
 
-This release includes the Android APK, a source-code archive and a detailed delivery report. The private repository contains all frontend, backend, AI adapters, Android project, VS Code settings, tests and guides.
+Adds People of Determination preferences, red 999/997/998 emergency links, English/Arabic core controls, private participant invitations, independent testimony, reviewer-approved joint reports, and local simulated department/insurance receipts.
 
-## Install the APK
+The backend starts independently of AI warmup; endpoint testing and disconnection messages are improved. Pretrained damage/image inference and source-linked findings were verified through the live API. Eight tests passed; dependency audit reported zero vulnerabilities.
 
-Download `Ballighni-Android.apk`, transfer it to an Android phone and follow Android's normal installation prompts. Google Play is not required. Android 7.0+ is required.
+Install Ballighni-Android.apk directly on Android 7+ without Google Play. This is a debug-signed test build. No physical-device test was performed. Live reporting/AI and synchronization require a reachable shared HTTPS backend configured in Connection settings. No shared host is deployed; localhost on a phone is not this computer.
 
-This is a debug-signed test build. The bundled overview and synthetic example can open without a server. Accounts, reporting, evidence and AI require your shared HTTPS backend, entered through **Connection settings**. No backend hosting has been deployed; the owner requested GitHub and local use only.
+Both teammates now have access to the private repository. Open ballighni.code-workspace in VS Code and read START-HERE.md. Source archives exclude credentials, databases, personal evidence, signing keys and model weights; pinned model downloaders are included.
 
-## Start the code
-
-Open `ballighni.code-workspace` in Visual Studio Code. Install Node.js 24, then run `npm ci` and `npm start`. Open `http://localhost:3000`. Follow the README for the optional pretrained damage AI setup.
-
-The source archive excludes `.env`, runtime databases, private images, credentials, signing keys and third-party model weights. Pinned, checksum-verified model downloaders are included instead. The live AI path was tested locally.
-
-## Work together
-
-`abdulrahmanabuseedo` has a pending write invitation. Accept it at https://github.com/ali363899-byte/ballighni/invitations, then clone the private repository. Read `docs/TEAM-GUIDE.md` and `docs/PDF-CHECKLIST.md`.
-
-Five regression tests pass; the dependency audit reports zero vulnerabilities. Local Android compilation and APK signature verification passed. Phone layouts were inspected at 320px and 390px without horizontal overflow. No physical Android device was available, so hardware testing is still required.
-
-This is a hackathon prototype, not an official reporting service. AI outputs are unverified damage observations, never fault, injury, roadworthiness, claim or official police decisions.
+Department/insurance receipts are local simulations. The app does not determine fault, injuries, roadworthiness or insurance outcomes. See docs/DELIVERY-REPORT.md and docs/PDF-CHECKLIST.md for verification and remaining limits.

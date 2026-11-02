@@ -1,6 +1,8 @@
 // AI is an evidence assistant. Never return a fault, injury, or roadworthiness verdict.
 export const LIMITATION =
   "Cause, liability, injuries and roadworthiness cannot be established by this draft. Human review is required.";
+const groundedNarrative = (base, findings) =>
+  `${base.narrative}\n\nUnverified image observations (not eyewitness testimony):\n${findings.length ? findings.map((f) => `[${f.source_id}] ${f.observation} ${f.confidence !== undefined ? `Model score ${Math.round(f.confidence * 100)}%; not calibrated certainty.` : ""}`).join("\n") : "No reliable automated observations are available."}\n\nMissing / uncertain:\n${base.missing.join("\n")}`;
 export async function analyze(caseData, evidence, config = process.env) {
   const base = {
     mode: "manual",
@@ -12,6 +14,22 @@ export async function analyze(caseData, evidence, config = process.env) {
     narrative: `Reporter account (unverified): ${caseData.narrative}\nLocation entered by reporter: ${caseData.location}.\n${LIMITATION}`,
     limitation: LIMITATION,
   };
+  for (const item of evidence)
+    for (const flag of item.quality?.flags || [])
+      base.missing.push(`${item.id}: ${flag}`);
+  const analyzable = evidence.filter(
+    (item) => item.quality?.usable_for_ai !== false,
+  );
+  if (
+    ["damage", "ollama"].includes(config.AI_PROVIDER) &&
+    evidence.length &&
+    !analyzable.length
+  )
+    return {
+      ...base,
+      warning:
+        "The supplied photos have too little reliable detail for automatic analysis. A manual draft is saved; add a clearer image and retry.",
+    };
   if (config.AI_PROVIDER === "damage" && evidence.length) {
     try {
       const findings = [];
@@ -29,7 +47,7 @@ export async function analyze(caseData, evidence, config = process.env) {
         "scratch",
         "tire flat",
       ]);
-      for (const item of evidence.slice(0, 4)) {
+      for (const item of analyzable.slice(0, 4)) {
         const response = await fetch(
           `${config.DAMAGE_AI_URL || "http://127.0.0.1:8787"}/analyze`,
           {
@@ -80,6 +98,7 @@ export async function analyze(caseData, evidence, config = process.env) {
         mode: "ai",
         model: modelId,
         findings,
+        narrative: groundedNarrative(base, findings),
         missing: [
           ...base.missing,
           ...(findings.length
@@ -100,7 +119,7 @@ export async function analyze(caseData, evidence, config = process.env) {
   if (config.AI_PROVIDER !== "ollama" || !evidence.length) return base;
   try {
     const observations = [];
-    for (const item of evidence.slice(0, 4)) {
+    for (const item of analyzable.slice(0, 4)) {
       const response = await fetch(
         `${config.OLLAMA_URL || "http://127.0.0.1:11434"}/api/chat`,
         {
@@ -178,6 +197,7 @@ export async function analyze(caseData, evidence, config = process.env) {
       mode: "ai",
       model: config.OLLAMA_MODEL || "qwen2.5vl:7b",
       findings: observations,
+      narrative: groundedNarrative(base, observations),
     };
   } catch {
     return {

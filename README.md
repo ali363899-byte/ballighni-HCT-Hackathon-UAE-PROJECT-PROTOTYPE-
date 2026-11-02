@@ -2,6 +2,10 @@
 
 One report. One platform. A smarter response.
 
+**Start with [START-HERE.md](START-HERE.md).** It links the repository map, Android setup, backend connection fix, accessibility tools, shared participant reports and the PDF checklist.
+
+The upgraded prototype includes red emergency guidance (Police 999, Fire/Civil Defence 997, Ambulance 998), People of Determination support, English/Arabic core controls, heuristic photo-quality prompts, consent-based participant linking, a source-linked joint report and human-approved **simulated** department/insurance routing. Original accounts stay separate; no automated fault verdict is issued.
+
 An accident-evidence **hackathon prototype** with driver and witness reporting, source-linked damage findings, user-confirmed drafts, protected cases, human review and a status timeline. No official police, insurer or emergency integration is claimed.
 
 ## Start here in VS Code

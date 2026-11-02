@@ -1,25 +1,23 @@
-# Playbook coverage
+# Playbook coverage · prototype 1.1.0
 
-Reference: Ballighni Fantastic Four Hackathon Master Playbook, supplied by the project owner. This is a prototype implementation, not an official reporting service.
+Reference: the supplied Ballighni Fantastic Four Hackathon Master Playbook. Product requirements are distinguished from official operational authorization.
 
-| Playbook requirement                   | Implementation                                                                                                   | Verification / limits                                                                  |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| P0 safety prompt and emergency handoff | Safety question before capture; injury/danger branch shows police/ambulance calling links                        | Browser tested; API rejects reports without safe=true                                  |
-| P0 guided capture                      | Driver/witness details, time, approximate location, permitted photo upload, consent                              | Browser-tested text journey; API-tested image decoding, duplicate detection and access |
-| P0 structured preliminary report       | Source-linked findings, model ID, uncertainty, missing-evidence prompts and editable reporter narrative          | Model inference smoke-tested separately; no accuracy benchmark claimed                 |
-| P0 user confirmation                   | Draft is saved first; explicit checkbox and edited report required to submit                                     | API and browser tested                                                                 |
-| P0 case tracking                       | Unique prototype reference, persistent SQLite case and timeline                                                  | API and browser tested; user refreshes updates                                         |
-| P0 reviewer dashboard                  | Protected queue, original evidence, review/request/close with required reason                                    | Full lifecycle API tested                                                              |
-| P1 witness mode                        | Text-only witness report is supported                                                                            | API tested                                                                             |
-| P1 possible matching                   | Same entered location and within 30 minutes; reviewer accepts or rejects                                         | API tested; heuristic, no automatic merge                                              |
-| P1 confidence / missing photos         | Model scores, source IDs, missing-image prompts, no invented findings on failure                                 | AI adapter and API tested; confidence is not calibrated certainty                      |
-| P1 bilingual interface                 | Arabic brand mark; application labels are currently English                                                      | Full Arabic localization is not implemented                                            |
-| Secure uploads                         | JPEG/PNG/WebP decoding, size/pixel/count limits, metadata stripping, protected retrieval                         | API tested; no automatic face/plate redaction                                          |
-| Audit and permissions                  | Salted password hashing, hashed expiring sessions, owner/reviewer checks, transactional append-only audit events | API tested; database administrator is still trusted                                    |
-| Phone app                              | Responsive layout, mobile bottom navigation, safe-area spacing, touch targets, native Android project            | Web viewport tested; APK compilation/signature verification tracked in delivery report |
-| Official integrations                  | None                                                                                                             | No dispatch, official police report, insurance decision or government routing          |
-| Measurements                           | No invented time savings, injury diagnosis, fault verdict, cost estimate or model accuracy claims                | User studies and domain validation remain future work                                  |
+| Requirement | Implementation | Evidence / limit |
+|---|---|---|
+| P0 safety and emergency handoff | Safely stopped reporting gate; red 999 / 997 / 998 calling guidance | UI and API checks; no dispatch |
+| P0 guided capture | Driver/witness, time, location, narrative, consent, permitted images | API validation and browser journey |
+| P0 preliminary report | Image-source citations, model ID, uncertainty, editable draft | Live pretrained inference and adapter tests; no validated accuracy claim |
+| P0 explicit confirmation | User confirms edited draft before submission | API and browser verified |
+| P0 tracking | Persistent references, timeline, periodic connected refresh | API lifecycle and browser verified |
+| P0 reviewer dashboard | Queue, images, corrections, requests, status/reasons, audit | Access-control and lifecycle tests |
+| P1 witness and matching | Separate statements; heuristic candidates and private invitations; reviewer decides relationship | Never auto-merges or determines fault; workflow tests |
+| P1 confidence / missing evidence | Model scores, missing-image guidance, poor-image retake heuristic | Low-detail photo test skips inference; heuristic is not validated quality scoring |
+| P1 bilingual controls | Core English/Arabic labels and RTL toggle | Browser checked; full explanatory prose localization remains |
+| Accessibility improvement | Large text, contrast, reduced motion, communication card, optional reviewer support request | Preferences survive reload; no driving-control or fitness assessment |
+| Joint review and routing demo | Separate original/confirmed accounts, approved snapshot, downloadable text, two simulated receipts | Consent/access/idempotency/invalidation tests; no external transmission |
+| Secure evidence | Decode/type/size/pixel/count checks, metadata stripping, protected retrieval | API tests; automatic face/plate redaction remains |
+| Phone app | Shared responsive frontend, touch navigation, native Android project/APK | Build and signature checks; physical-device testing remains |
+| Official partnerships/integrations | Deliberately not represented as live | Require authorized agency/insurer endpoints and agreements |
+| Measurements | Actual test results and model smoke-test scores recorded | No invented time savings, accuracy, injury or liability claims |
 
-The architecture uses Node.js 24 + SQLite rather than the playbook's optional FastAPI/Firebase examples. The playbook permits choosing a practical team stack. The optional inference worker is Python, isolated behind an authenticated loopback endpoint.
-
-The default pinned YOLOv8n model returns possible damage classes and regions; a local damaged-car sample produced possible dent and dislocated-part findings. These are unverified observations, not validated severity or cause estimates. An optional ONNX checkpoint is included for evaluation; it has one generic damage class and performed worse on that smoke test. The model notes document both results.
+Node.js 24/SQLite implement the main API; Python provides isolated authenticated loopback inference. The playbook's suggested stacks are alternatives, not a mandate. A shared HTTPS backend is required for live phone and multi-device reporting; it has not been deployed under the prior GitHub/local-only instruction.

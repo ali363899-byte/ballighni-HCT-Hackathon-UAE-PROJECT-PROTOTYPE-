@@ -25,6 +25,7 @@ test("pretrained detections retain evidence provenance and model identity", asyn
   assert.equal(result.model, "damagelens-yolo-2b9ae06");
   assert.equal(result.findings[0].source_id, "photo-42");
   assert.equal(result.findings[0].confidence, 0.72);
+  assert.match(result.narrative, /\[photo-42\]/);
   assert.match(result.findings[0].uncertainty, /Human inspection/);
 });
 test("malformed damage findings fail back to an honest manual draft", async (t) => {

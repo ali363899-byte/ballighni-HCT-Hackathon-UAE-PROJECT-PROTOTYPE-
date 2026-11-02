@@ -1,3 +1,12 @@
+import {
+  applyAccessibility,
+  accessibilityPage,
+  communicationCard,
+} from "./accessibility.js";
+import { mountCaseWorkflow } from "./case-workflow.js";
+import { setupLanguage } from "./language.js";
+applyAccessibility();
+setupLanguage();
 const $ = (s) => document.querySelector(s);
 const escape = (value) =>
   String(value ?? "").replace(
@@ -30,6 +39,34 @@ let apiUrl =
   localStorage.getItem("ballighni-api") ||
   window.BALLIGHNI_CONFIG?.apiUrl ||
   "";
+let workspaceConnected = false;
+async function refreshConnection() {
+  const status = $("#connection-status");
+  if (!status) return;
+  try {
+    const health = await api("/health", { signal: AbortSignal.timeout(6000) });
+    workspaceConnected = true;
+    status.textContent = health.ai_available
+      ? "Connected · Damage AI ready"
+      : "Connected · Manual draft available" +
+        (health.ai_provider === "damage"
+          ? " · AI starting or unavailable"
+          : "");
+    $("#connection-bar").classList.remove("disconnected");
+    if (token && !user) {
+      try {
+        user = await api("/me");
+        updateAccount();
+      } catch {}
+    }
+  } catch {
+    workspaceConnected = false;
+    status.textContent = window.Capacitor?.isNativePlatform?.()
+      ? "Connect a shared HTTPS backend to use live reports."
+      : "Backend not connected · start the server or check the saved address.";
+    $("#connection-bar").classList.add("disconnected");
+  }
+}
 const demo = {
   id: "BLG-DEMO-0042",
   status: "review",
@@ -65,10 +102,17 @@ const demo = {
   matches: [],
 };
 async function api(path, options = {}) {
+  if (!apiUrl && window.Capacitor?.isNativePlatform?.())
+    throw new Error(
+      "Connect this Android app to your shared backend in Connection settings. The phone cannot use the computer’s localhost address.",
+    );
   let response;
   try {
     response = await fetch(`${apiUrl}/api${path}`, {
       ...options,
+      signal:
+        options.signal ||
+        AbortSignal.timeout(path.endsWith("/analyze") ? 200000 : 20000),
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -127,7 +171,7 @@ function requireUser(route) {
 function badge(status) {
   return `<span class="badge ${escape(status)}">${escape(label(status))}</span>`;
 }
-const safety = `<div class="safety-banner"><span class="safety-icon">△</span><p><strong>Safety comes first.</strong> If anyone may be injured, there is fire or immediate danger, use official emergency channels. UAE: police <a href="tel:999">999</a> · ambulance <a href="tel:998">998</a>.</p></div>`;
+const safety = `<div class="safety-banner emergency-guidance" role="note"><span class="safety-icon" aria-hidden="true">△</span><div><strong>Safety is the main priority.</strong><p>If anyone has been injured, a fire has occurred, or there is immediate danger, urgently call the official emergency channels. Do not wait for a report.</p><div class="emergency-links"><a href="tel:999">Police · 999</a><a href="tel:997">Fire / Civil Defence · 997</a><a href="tel:998">Ambulance · 998</a></div></div></div>`;
 function heading(title, description, eyebrow = "YOUR REPORTING SPACE") {
   return `<div class="topline"><div class="page-intro"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div></div>`;
 }
@@ -141,17 +185,36 @@ function home() {
 function report(role = "driver") {
   $("#main").innerHTML =
     `<div class="wizard">${heading(role === "witness" ? "Your perspective matters." : "Let’s start with safety.", "A few clear steps to organize what happened.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span class="current">01 / Safety</span><span>02 / Details & evidence</span><span>03 / Review & confirm</span></div><section class="panel"><h2>Is anyone injured or in immediate danger?</h2><p>Ballighni is a prototype for routine evidence reporting. Never approach danger, photograph victims, or delay urgent help.</p><div class="button-row"><button class="danger-button" id="danger-yes">Yes / I’m not sure</button><button class="secondary" id="safe-no">No immediate danger →</button></div><div id="safety-next"></div></section>${safety}</div>`;
+  const stationary = document.createElement("label");
+  stationary.className = "checkbox stationary-confirmation";
+  stationary.innerHTML =
+    '<input id="stationary" type="checkbox"><span>I am safely stopped and can report without distraction. I will not use this app while driving.</span>';
+  $("#safe-no").parentElement.before(stationary);
   $("#danger-yes").onclick = () => {
     $("#safety-next").innerHTML =
-      `<div class="emergency"><h2>Pause this report. Get urgent help.</h2><p>Move to safety if possible and follow official instructions. Do not use this routine case queue for an emergency.</p><a class="danger-button" href="tel:999">Call police · 999</a><a class="danger-button" href="tel:998">Call ambulance · 998</a></div>`;
+      `<div class="emergency"><h2>Pause this report. Get urgent help.</h2><p>Move to safety if possible and follow official instructions. Do not use this routine case queue for an emergency.</p><a class="danger-button" href="tel:999">Call police · 999</a><a class="danger-button" href="tel:997">Call Fire / Civil Defence · 997</a><a class="danger-button" href="tel:998">Call ambulance · 998</a></div>`;
   };
   $("#safe-no").onclick = () => {
+    if (!$("#stationary").checked) {
+      toast("Please stop safely before using the reporting flow.", true);
+      $("#stationary").focus();
+      return;
+    }
     if (requireUser(role === "witness" ? "witness" : "report")) capture(role);
   };
 }
 function capture(role) {
   $("#main").innerHTML =
     `<div class="wizard">${heading("Tell us what you observed.", "Record only what you know. Avoid names, number plates, victim images and unnecessary personal details.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span>01 / Safety ✓</span><span class="current">02 / Details & evidence</span><span>03 / Review & confirm</span></div><form id="capture-form" class="panel"><div class="form-grid"><label>Approximate location<input name="location" required minlength="3" maxlength="200" placeholder="e.g. Al Jurf, Ajman"></label><label>When did it happen?<input name="event_time" type="datetime-local" required></label><label class="wide">What happened?<textarea name="narrative" minlength="10" maxlength="3000" required placeholder="Describe what you directly observed. Distinguish facts from assumptions."></textarea></label></div><div class="upload-zone"><label>Photos <small>Optional · JPEG, PNG or WebP · up to 6 files, 8 MB each</small><input type="file" id="photos" accept="image/jpeg,image/png,image/webp" multiple></label><p>Use a safe wide view and an additional damage angle. Do not include people, plates or documents. Embedded metadata is removed by the server.</p><div id="photo-count" class="muted"></div></div><label class="checkbox"><input type="checkbox" name="consent" required><span>I have permission to submit this information and any photos. I understand this is a hackathon prototype, and agree to storage and authorized human review.</span></label><div class="form-error" id="capture-error" role="alert"></div><div class="button-row"><button class="primary" type="submit">Save & prepare draft →</button><a class="text-button" href="#home">Cancel</a></div></form></div>`;
+  const extra = document.createElement("section");
+  extra.className = "capture-support";
+  extra.innerHTML = `<h3>Support and connected accounts</h3><label>Your involvement <small>Self-described only; this is not a legal determination.</small><select name="self_reported_position"><option value="${role === "witness" ? "witness" : "participant"}">${role === "witness" ? "Witness" : "Involved participant"}</option>${role === "witness" ? "" : '<option value="affected_participant">I consider myself an affected participant</option>'}</select></label><label>Communication / access support request <small>Optional. Visible to authorized reviewers. Do not enter a diagnosis or unnecessary personal details.</small><textarea name="support_request" maxlength="500" placeholder="For example: Please give me extra time. I prefer written communication."></textarea></label><button class="text-button" id="use-support-card" type="button">Use my saved communication card</button><label>Other participant’s private invitation code <small>Optional. Each person still submits a separate testimony.</small><input name="join_code" maxlength="40" placeholder="BLG-JOIN-…" autocomplete="off"></label><label class="checkbox"><input name="sharing_consent" type="checkbox"><span>I agree to share my confirmed account and damage observations with the connected participant after reviewer approval. Private photos and support requests are not shared with that person.</span></label>`;
+  $("#capture-form .upload-zone").before(extra);
+  $("#use-support-card").onclick = () => {
+    $('[name="support_request"]').value = communicationCard();
+    if (!communicationCard())
+      toast("Save a communication card in Accessibility & support first.");
+  };
   const input = $('[name="event_time"]');
   input.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
@@ -171,12 +234,18 @@ function capture(role) {
       if (files.length > 6 || files.some((f) => f.size > 8 * 1024 * 1024))
         throw new Error("Choose up to six photos, each no larger than 8 MB.");
       const values = Object.fromEntries(new FormData(form));
+      if (values.join_code && !form.elements.sharing_consent.checked)
+        throw new Error(
+          "Agree to share your confirmed account before using a participant invitation.",
+        );
+      current = null;
       current = await post("/cases", {
         ...values,
         event_time: new Date(values.event_time).toISOString(),
         reporter_role: role,
         safe: true,
         consent: true,
+        sharing_consent: form.elements.sharing_consent.checked,
       });
       button.textContent = "Uploading evidence…";
       for (const file of files) await upload(current.id, file);
@@ -292,6 +361,13 @@ async function detail(id, synthetic = false) {
         frame.append(mark);
       }
       fig.append(frame, caption);
+      if (e.quality?.flags?.length) {
+        const quality = document.createElement("p");
+        quality.className = "image-quality-note";
+        quality.textContent =
+          "Photo guidance (heuristic): " + e.quality.flags.join(" ");
+        fig.append(quality);
+      }
       $("#evidence")?.append(fig);
     }
   const act = async (button, fn) => {
@@ -304,6 +380,17 @@ async function detail(id, synthetic = false) {
       button.disabled = false;
     }
   };
+  if (!synthetic)
+    await mountCaseWorkflow({
+      c,
+      user,
+      api,
+      post,
+      escape,
+      date,
+      refresh: () => detail(id),
+      toast,
+    });
   if ($("#correction-form"))
     $("#correction-form").onsubmit = (e) => {
       e.preventDefault();
@@ -390,6 +477,16 @@ function settings() {
     if (value) {
       const parsed = new URL(value);
       if (
+        window.Capacitor?.isNativePlatform?.() &&
+        ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)
+      ) {
+        toast(
+          "On Android, localhost is the phone. Use the shared HTTPS backend address.",
+          true,
+        );
+        return;
+      }
+      if (
         parsed.protocol !== "https:" &&
         !["localhost", "127.0.0.1"].includes(parsed.hostname)
       ) {
@@ -404,20 +501,54 @@ function settings() {
         return;
       }
     }
-    apiUrl = value;
+    apiUrl = value || window.BALLIGHNI_CONFIG?.apiUrl || "";
     localStorage.setItem("ballighni-api", value);
     token = "";
     user = null;
     sessionStorage.removeItem("ballighni-token");
     updateAccount();
     toast("Connection saved. Sign in to this backend.");
+    refreshConnection();
   };
   $("#test-connection").onclick = async () => {
     const result = $("#connection-result");
     result.hidden = false;
     try {
-      const h = await api("/health");
-      result.textContent = `Connected to ${h.app}. AI provider: ${h.ai_provider}.`;
+      const candidate =
+        $("#api-url").value.trim().replace(/\/$/, "") ||
+        window.BALLIGHNI_CONFIG?.apiUrl ||
+        "";
+      if (!$("#settings-form").reportValidity()) return;
+      if (!candidate && window.Capacitor?.isNativePlatform?.())
+        throw new Error(
+          "Enter the shared backend HTTPS address. The APK does not contain the reporting server.",
+        );
+      if (candidate) {
+        const parsed = new URL(candidate);
+        if (parsed.username || parsed.password || parsed.search || parsed.hash)
+          throw new Error(
+            "Use a plain backend URL without credentials or query parameters.",
+          );
+        if (
+          parsed.protocol !== "https:" &&
+          !["localhost", "127.0.0.1"].includes(parsed.hostname)
+        )
+          throw new Error("Remote backends must use HTTPS.");
+        if (
+          window.Capacitor?.isNativePlatform?.() &&
+          ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)
+        )
+          throw new Error(
+            "The computer’s localhost cannot be reached from the phone.",
+          );
+      }
+      const response = await fetch(`${candidate}/api/health`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      const h = await response.json();
+      if (!response.ok || h.app !== "Ballighni")
+        throw new Error("This address is not a healthy Ballighni backend.");
+      result.textContent = `Connection verified. ${h.ai_available ? "Damage AI is ready." : "Manual reporting is available; AI is not ready."} Save this address to use it.`;
     } catch (e) {
       result.textContent = e.message;
     }
@@ -444,6 +575,7 @@ async function route() {
       about: "About",
       settings: "Connection",
       demo: "Synthetic example",
+      accessibility: "Accessibility & support",
     }[section] || "Overview";
   $("#main").innerHTML =
     '<div class="loading" role="status">Preparing your workspace…</div>';
@@ -456,6 +588,7 @@ async function route() {
     else if (section === "case") await detail(hash.split("/")[1]);
     else if (section === "demo") await detail(demo.id, true);
     else if (section === "settings") settings();
+    else if (section === "accessibility") accessibilityPage($("#main"));
     else if (section === "about") about();
     else home();
   } catch (e) {
@@ -528,9 +661,28 @@ if (token) {
   try {
     user = await api("/me");
   } catch {
-    token = "";
-    sessionStorage.removeItem("ballighni-token");
+    // A temporary network failure must not erase a still-valid session.
   }
 }
 updateAccount();
 route();
+refreshConnection();
+setInterval(async () => {
+  if (document.hidden) return;
+  await refreshConnection();
+  if (
+    workspaceConnected &&
+    user?.role === "citizen" &&
+    location.hash.startsWith("#case/") &&
+    current &&
+    ["submitted", "review", "closed"].includes(current.status) &&
+    !document.querySelector("dialog[open]") &&
+    !document.activeElement?.matches("input,textarea,select")
+  ) {
+    const scroll = window.scrollY;
+    try {
+      await detail(current.id);
+      window.scrollTo(0, scroll);
+    } catch {}
+  }
+}, 20000);

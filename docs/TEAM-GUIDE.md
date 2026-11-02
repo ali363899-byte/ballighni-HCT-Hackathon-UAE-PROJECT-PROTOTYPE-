@@ -4,7 +4,7 @@
 
 Repository: https://github.com/ali363899-byte/ballighni
 
-Owner: `ali363899-byte`. Invited collaborator: `abdulrahmanabuseedo`. The invitation must be accepted before the collaborator can clone the private repository.
+Owner: `ali363899-byte`. Collaborator: `abdulrahmanabuseedo`. The invitation has been accepted; both developers have access.
 
 Both developers use **Visual Studio Code**. VS Code edits the project; GitHub shares and versions it. Android Studio is optional for native debugging; VS Code and Gradle can build the APK.
 

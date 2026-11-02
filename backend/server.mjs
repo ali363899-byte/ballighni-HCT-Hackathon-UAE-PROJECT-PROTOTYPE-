@@ -12,6 +12,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { analyze } from "./ai.mjs";
+import { createCaseWorkflow } from "./case-workflow.mjs";
+import { inspectImage } from "./image-quality.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const now = () => new Date().toISOString();
@@ -30,6 +32,13 @@ db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS links(a TEXT REFERENCES cases(id), b TEXT REFERENCES cases(id), decision TEXT NOT NULL, PRIMARY KEY(a,b));
  CREATE TRIGGER IF NOT EXISTS immutable_updates_update BEFORE UPDATE ON updates BEGIN SELECT RAISE(ABORT,'Audit events are immutable'); END;
  CREATE TRIGGER IF NOT EXISTS immutable_updates_delete BEFORE DELETE ON updates BEGIN SELECT RAISE(ABORT,'Audit events are immutable'); END;`);
+if (
+  !db
+    .prepare("PRAGMA table_info(evidence)")
+    .all()
+    .some((c) => c.name === "quality")
+)
+  db.exec("ALTER TABLE evidence ADD COLUMN quality TEXT");
 const q = (sql, ...args) => db.prepare(sql).get(...args);
 const all = (sql, ...args) => db.prepare(sql).all(...args);
 const run = (sql, ...args) => db.prepare(sql).run(...args);
@@ -72,6 +81,15 @@ const allowedOrigins = new Set(
     "http://localhost:3000,http://127.0.0.1:3000,https://localhost"
   ).split(","),
 );
+if (process.env.PUBLIC_ORIGIN) {
+  const origin = new URL(process.env.PUBLIC_ORIGIN);
+  if (
+    origin.protocol !== "https:" ||
+    origin.origin !== process.env.PUBLIC_ORIGIN.replace(/\/$/, "")
+  )
+    throw new Error("PUBLIC_ORIGIN must be a plain HTTPS origin.");
+  allowedOrigins.add(origin.origin);
+}
 const limits = new Map();
 function rate(key, max) {
   const time = Date.now();
@@ -131,7 +149,9 @@ function save(c) {
   );
 }
 const evidenceList = (id) =>
-  all("SELECT id,created_at FROM evidence WHERE case_id=?", id);
+  all("SELECT id,created_at,quality FROM evidence WHERE case_id=?", id).map(
+    (e) => ({ ...e, quality: e.quality ? JSON.parse(e.quality) : null }),
+  );
 function fullCase(c, user) {
   const result = {
     ...c,
@@ -169,20 +189,62 @@ function fullCase(c, user) {
             ...[c.id, other.id].sort(),
           )?.decision || "pending",
       }));
+  const extra = workflow.enrich(c, user);
+  result.shared_reports = extra.shared_reports;
+  result.pending_connections = extra.pending_connections;
+  result.dispatches = extra.dispatches;
+  result.packet_review = extra.packet_review;
+  if (user.role === "reviewer")
+    result.matches = [
+      ...extra.explicit_matches,
+      ...(result.matches || []).filter(
+        (m) => !extra.explicit_matches.some((existing) => existing.id === m.id),
+      ),
+    ];
   return result;
 }
 const activeAnalysis = new Set();
+const workflow = createCaseWorkflow({
+  db,
+  q,
+  all,
+  run,
+  fail,
+  text,
+  audit,
+  transaction,
+  getCase,
+  save,
+  now,
+  digest,
+});
 async function api(req, url, res) {
   const route = url.pathname;
   const method = req.method;
   rate(`ip:${req.socket.remoteAddress}`, 180);
-  if (route === "/api/health")
+  if (route === "/api/health") {
+    let aiAvailable = false;
+    if (process.env.AI_PROVIDER === "damage")
+      try {
+        const health = await fetch(
+          `${process.env.DAMAGE_AI_URL || "http://127.0.0.1:8787"}/health`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.BALLIGHNI_AI_TOKEN || ""}`,
+            },
+            signal: AbortSignal.timeout(1200),
+          },
+        );
+        aiAvailable = health.ok;
+      } catch {}
     return {
       ok: true,
       app: "Ballighni",
       prototype: true,
       ai_provider: process.env.AI_PROVIDER || "manual",
+      ai_available: aiAvailable,
     };
+  }
   if (route === "/api/auth/register" && method === "POST") {
     rate(`register:${req.socket.remoteAddress}`, 10);
     const b = await body(req);
@@ -244,6 +306,8 @@ async function api(req, url, res) {
     };
   }
   const user = auth(req);
+  const workflowResult = await workflow.handle(req, url, user, body);
+  if (workflowResult.handled) return workflowResult.value;
   if (route === "/api/auth/logout" && method === "POST") {
     run(
       "DELETE FROM sessions WHERE token=?",
@@ -290,6 +354,19 @@ async function api(req, url, res) {
       location: text(b.location, "Location", 3, 200),
       event_time: new Date(time).toISOString(),
       narrative: text(b.narrative, "Description", 10, 3000),
+      support_request: b.support_request
+        ? text(b.support_request, "Requested support", 1, 500)
+        : null,
+      self_reported_position: [
+        "participant",
+        "affected_participant",
+        "witness",
+      ].includes(b.self_reported_position)
+        ? b.self_reported_position
+        : b.reporter_role === "witness"
+          ? "witness"
+          : "participant",
+      sharing_consent: b.sharing_consent === true,
       consent: true,
       safe: true,
       analysis: null,
@@ -304,6 +381,7 @@ async function api(req, url, res) {
         JSON.stringify(c),
         c.created_at,
       );
+      workflow.connectOnCreate(c, b, user);
       audit(c.id, user, "draft_created");
     });
     res.statusCode = 201;
@@ -371,6 +449,7 @@ async function api(req, url, res) {
       if (e.status) throw e;
       fail(400, "The image cannot be decoded. Try another photo.");
     }
+    const quality = await inspectImage(bytes);
     const hash = digest(bytes);
     if (q("SELECT id FROM evidence WHERE case_id=? AND hash=?", id, hash))
       fail(409, "This photo is already attached.");
@@ -383,12 +462,13 @@ async function api(req, url, res) {
     const evidenceId = randomUUID();
     transaction(() => {
       run(
-        "INSERT INTO evidence VALUES(?,?,?,?,?)",
+        "INSERT INTO evidence(id,case_id,hash,bytes,created_at,quality) VALUES(?,?,?,?,?,?)",
         evidenceId,
         id,
         hash,
         bytes,
         now(),
+        JSON.stringify(quality),
       );
       c.analysis = null;
       save(c);
@@ -403,9 +483,14 @@ async function api(req, url, res) {
     if (activeAnalysis.has(id)) fail(409, "Analysis is already running.");
     activeAnalysis.add(id);
     try {
-      const ev = all("SELECT id,bytes FROM evidence WHERE case_id=?", id).map(
-        (e) => ({ ...e, bytes: Buffer.from(e.bytes) }),
-      );
+      const ev = all(
+        "SELECT id,bytes,quality FROM evidence WHERE case_id=?",
+        id,
+      ).map((e) => ({
+        ...e,
+        bytes: Buffer.from(e.bytes),
+        quality: e.quality ? JSON.parse(e.quality) : null,
+      }));
       const finding = await analyze(c, ev);
       c = getCase(id, user);
       if (c.status !== "draft") fail(409, "Case changed during analysis.");
