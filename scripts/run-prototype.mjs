@@ -7,7 +7,7 @@ const python =
   (process.platform === "win32"
     ? ".venv-ai/Scripts/python.exe"
     : ".venv-ai/bin/python");
-const configDir = path.resolve("data/ai-config");
+const configDir = path.resolve(process.env.DATA_DIR || "data", "ai-config");
 mkdirSync(configDir, { recursive: true });
 const env = {
   ...process.env,

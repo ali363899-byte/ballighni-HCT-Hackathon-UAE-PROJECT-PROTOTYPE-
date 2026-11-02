@@ -49,3 +49,6 @@ The APK installs directly without Google Play and requires Android 7+. It is a d
 The bundled overview, safety guidance and synthetic example work without a server. Live accounts, reports, image AI and cross-device synchronization require the same reachable HTTPS backend on every client. A phone's localhost refers to the phone. GitHub shares code, not the database. Read CONNECTIONS.md and DEPLOYMENT.md.
 
 No shared HTTPS host has been deployed. The owner's previous instruction was GitHub/local only; revised hosting preference was requested. Docker deployment examples are prepared, but the full Node/Python container has not been built or deployed here. Real agency/insurer transmission needs authorized endpoints and agreements. These limitations must remain visible during demonstrations.
+
+
+Hosting update: the owner subsequently selected a shared HTTPS backend, with no paid service without approval. Browser-only Railway setup is prepared; no desktop/plugin installation is needed. Provider sign-in authorization and actual deployment verification remain outstanding. See DEPLOYMENT.md for exact settings.
