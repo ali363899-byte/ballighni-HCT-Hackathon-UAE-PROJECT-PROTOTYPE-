@@ -1,0 +1,11 @@
+{
+  "folders": [{ "path": ".", "name": "Ballighni · All project files" }],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/data": true,
+      "**/.gradle": true,
+    },
+    "editor.tabSize": 2,
+  },
+}

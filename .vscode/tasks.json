@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1 · Start web + backend",
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "2 · Start with damage AI",
+      "type": "npm",
+      "script": "start:ai",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "3 · Run tests",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "4 · Build web + sync Android",
+      "type": "npm",
+      "script": "android:sync",
+      "problemMatcher": []
+    }
+  ]
+}

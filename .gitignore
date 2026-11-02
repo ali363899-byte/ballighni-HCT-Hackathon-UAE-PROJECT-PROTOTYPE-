@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+data/
+*.apk
+*.aab
+*.jks
+*.keystore
+android/.gradle/
+android/local.properties
+android/**/build/
+.openai/
+*.log
+.venv-ai/
+ai/models/*.pt
+ai/models/*.onnx
+__pycache__/
