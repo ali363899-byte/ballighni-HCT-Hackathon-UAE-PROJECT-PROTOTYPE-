@@ -19,3 +19,6 @@
 The website, Android APK and backend are separate parts. The backend and model must be running somewhere reachable for live reports and cross-device updates. GitHub stores source code; it does not run this backend automatically.
 
 The app displays the connection and AI status. Photo/participant information is real persisted prototype data when connected. Department and insurance receipts are **local simulations, never real transmissions**.
+
+
+For the full laptop walkthrough, start with [LAPTOP-HOSTING.md](docs/LAPTOP-HOSTING.md). See [the four AI stages](docs/AI-WORKFLOW.md) for damage analysis, conditional AED references, testimony comparison and report drafting.

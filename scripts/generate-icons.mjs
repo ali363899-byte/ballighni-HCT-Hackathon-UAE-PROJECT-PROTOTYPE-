@@ -19,7 +19,7 @@ for (const [density, size, foreground] of [
       width: foreground,
       height: foreground,
       channels: 4,
-      background: "#f5f6f1",
+      background: "#f4f7fb",
     },
   })
     .composite([{ input: mark, gravity: "center" }])
@@ -28,6 +28,6 @@ for (const [density, size, foreground] of [
 }
 await writeFile(
   "android/app/src/main/res/values/ic_launcher_background.xml",
-  '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#f5f6f1</color></resources>',
+  '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#f4f7fb</color></resources>',
 );
 console.log("Ballighni launcher icons generated.");

@@ -49,19 +49,24 @@ Audit events are append-only through API behavior and SQLite triggers. Case muta
 
 The SQLite file needs persistent disk and backups. Image bytes are stored as database BLOBs in this prototype. Rate limits are per process and reset on restart. Sessions are stored in the browser session storage, so shared devices should sign out. TLS, disk encryption, backup policy, retention/deletion tools, account recovery, reviewer revocation, production monitoring and independent security testing are deployment responsibilities, not completed production features.
 
-
 ## Participant and report workflow (1.1)
 
 backend/case-workflow.mjs owns invitation, consent, packet review and simulated receipt storage. frontend/case-workflow.js renders those controls. Invitations are hashed, expire after 24 hours and are single use. Private invitation candidates take priority over location/time heuristics; reviewer approval is still required.
 
-| Method | Route suffix under /api/cases/{id} | Access / behavior |
-|---|---|---|
-| POST | /invite | Owner, active submitted case, explicit consent; returns private code once |
-| PATCH | /sharing | Owner changes future peer-summary sharing consent |
-| GET | /joint-report | Reviewer-only combined evidence packet; sources remain separate |
-| POST | /review-packet | Reviewer approves exact fingerprint with notes and confirmation |
-| POST | /dispatch | Reviewer-only local department_demo / insurer_demo simulation; matching approval required |
+| Method | Route suffix under /api/cases/{id} | Access / behavior                                                                         |
+| ------ | ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| POST   | /invite                            | Owner, active submitted case, explicit consent; returns private code once                 |
+| PATCH  | /sharing                           | Owner changes future peer-summary sharing consent                                         |
+| GET    | /joint-report                      | Reviewer-only combined evidence packet; sources remain separate                           |
+| POST   | /review-packet                     | Reviewer approves exact fingerprint with notes and confirmation                           |
+| POST   | /dispatch                          | Reviewer-only local department_demo / insurer_demo simulation; matching approval required |
 
 The packet includes independently attributed original testimony, confirmed drafts, evidence-linked observations and corrections. Private support requests and reviewer notes are restricted. New information changes the fingerprint and prevents routing under stale approval. Receipts are idempotent for the same destination/snapshot and appear on all included case histories. No external transmission code is present.
 
 backend/image-quality.mjs provides bounded image-quality heuristics, not a validated classifier. The frontend accessibility and language modules store device preferences separately from case data; communication cards are only added to cases by an explicit user action.
+
+## Version 1.2 AI and accessibility
+
+backend/ai-workflow.mjs contains separate assessment, testimony comparison and report-drafting adapters plus the cited reference-cost calculator. Text jobs are serialized and stored in the case workflow state; a server restart marks interrupted jobs honestly. POST /api/cases/{id}/ai-cancel lets only a draft owner invalidate its own text job while retaining image findings and editable narrative. POST /api/cases/{id}/join links an existing submitted report through consent and an invitation. Reviewer-only POST /api/cases/{id}/ai-compare queues the exact-source comparison; GET /joint-report returns its status/result. Approved snapshots become stale when source/AI content changes.
+
+frontend/design.css and interface.js provide the current navy/white/mint system. ai-workflow.js polls only its own panel and exposes explicit insertion of an AI draft into the confirmation form. voice.js provides explicit command parsing, dictation and reading controls. Android's BallighniVoicePlugin bridges user-started recognition/TTS and releases listening when the activity pauses. Audio is not stored in the case database.

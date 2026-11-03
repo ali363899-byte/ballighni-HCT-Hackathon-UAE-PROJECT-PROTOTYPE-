@@ -14,6 +14,7 @@ import sharp from "sharp";
 import { analyze } from "./ai.mjs";
 import { createCaseWorkflow } from "./case-workflow.mjs";
 import { inspectImage } from "./image-quality.mjs";
+import { runCaseStages, repairReference, queueAI } from "./ai-workflow.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const now = () => new Date().toISOString();
@@ -218,6 +219,24 @@ const workflow = createCaseWorkflow({
   now,
   digest,
 });
+// Background model jobs cannot survive a server restart; leave an honest retry state.
+for (const row of all("SELECT id,body FROM cases")) {
+  const saved = JSON.parse(row.body);
+  if (["queued", "running"].includes(saved.analysis?.workflow?.status)) {
+    saved.analysis.workflow.status = "interrupted";
+    saved.analysis.workflow.warning =
+      "The server restarted. Retry analysis on your draft to restart the AI roles.";
+    transaction(() => {
+      save(saved);
+      audit(
+        row.id,
+        { id: null },
+        "ai_workflow_interrupted",
+        "Background AI was interrupted by server restart; original testimony preserved.",
+      );
+    });
+  }
+}
 async function api(req, url, res) {
   const route = url.pathname;
   const method = req.method;
@@ -388,7 +407,7 @@ async function api(req, url, res) {
     return fullCase(c, user);
   }
   const match = route.match(
-    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|submit|status|link|respond|export|findings)(?:\/([a-f0-9-]+))?)?$/,
+    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|ai-cancel|submit|status|link|respond|export|findings)(?:\/([a-f0-9-]+))?)?$/,
   );
   if (!match) fail(404, "Endpoint not found.");
   const [, id, action, eid] = match;
@@ -476,9 +495,37 @@ async function api(req, url, res) {
     });
     return fullCase(c, user);
   }
+  if (action === "ai-cancel" && method === "POST") {
+    if (!owner || c.status !== "draft")
+      fail(403, "Only the draft owner can stop its text AI workflow.");
+    if (!c.analysis?.workflow)
+      fail(409, "There is no text AI workflow to stop.");
+    c.analysis.workflow = {
+      ...c.analysis.workflow,
+      status: "cancelled",
+      job_id: randomUUID(),
+      warning:
+        "Text AI stopped by the owner. Detector findings and the editable draft remain saved.",
+    };
+    transaction(() => {
+      save(c);
+      audit(
+        id,
+        user,
+        "ai_workflow_cancelled",
+        "Owner chose to keep the saved detector/manual draft. Original testimony unchanged.",
+      );
+    });
+    return fullCase(c, user);
+  }
   if (action === "analyze" && method === "POST") {
     if (!owner || c.status !== "draft")
       fail(403, "Only the owner can analyze a draft.");
+    if (["queued", "running"].includes(c.analysis?.workflow?.status))
+      fail(
+        409,
+        "The AI assistants are already working. Keep the saved case open for stage updates.",
+      );
     rate(`ai:${user.id}`, 3);
     if (activeAnalysis.has(id)) fail(409, "Analysis is already running.");
     activeAnalysis.add(id);
@@ -495,6 +542,52 @@ async function api(req, url, res) {
       c = getCase(id, user);
       if (c.status !== "draft") fail(409, "Case changed during analysis.");
       c.analysis = { ...finding, created_at: now() };
+      if (process.env.TEXT_AI_ENABLED === "true") {
+        const jobId = randomUUID();
+        c.analysis.workflow = {
+          job_id: jobId,
+          status: "queued",
+          repair_reference: repairReference(finding.findings),
+        };
+        const snapshot = structuredClone(c);
+        queueAI(async () => {
+          if (getCase(id, user).analysis?.workflow?.job_id !== jobId) return;
+          const result = await runCaseStages(
+            snapshot,
+            finding,
+            process.env,
+            (progress) => {
+              const partial = getCase(id, user);
+              if (partial.analysis?.workflow?.job_id !== jobId)
+                throw new Error("This AI job was superseded or cancelled.");
+              partial.analysis.workflow = {
+                ...progress,
+                job_id: jobId,
+                status: "running",
+              };
+              save(partial);
+            },
+          );
+          const fresh = getCase(id, user);
+          if (fresh.analysis?.workflow?.job_id !== jobId) return;
+          fresh.analysis.workflow = {
+            ...result,
+            job_id: jobId,
+            status: "complete",
+          };
+          transaction(() => {
+            save(fresh);
+            audit(
+              id,
+              user,
+              "ai_workflow_completed",
+              "Separate assessment, testimony and report roles completed; original account unchanged.",
+            );
+          });
+        }).catch((error) =>
+          console.error("Text AI workflow failed:", error.message),
+        );
+      }
       transaction(() => {
         save(c);
         audit(id, user, "draft_prepared", finding.mode);

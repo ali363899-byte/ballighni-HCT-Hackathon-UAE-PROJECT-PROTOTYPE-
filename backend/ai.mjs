@@ -108,7 +108,8 @@ export async function analyze(caseData, evidence, config = process.env) {
               ]),
         ],
       };
-    } catch {
+    } catch (error) {
+      console.warn("Damage detector fallback:", error.message);
       return {
         ...base,
         warning:

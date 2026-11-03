@@ -15,6 +15,8 @@ const env = {
   AI_PROVIDER: "damage",
   DAMAGE_AI_URL: "http://127.0.0.1:8787",
   YOLO_CONFIG_DIR: configDir,
+  OMP_NUM_THREADS: process.env.OMP_NUM_THREADS || "2",
+  MKL_NUM_THREADS: process.env.MKL_NUM_THREADS || "2",
 };
 let backend,
   ai,

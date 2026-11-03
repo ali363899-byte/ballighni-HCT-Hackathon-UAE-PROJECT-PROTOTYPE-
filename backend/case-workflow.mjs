@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { compareStatements, queueAI } from "./ai-workflow.mjs";
 
 // Participant accounts stay separate. Only an authorized reviewer can link and
 // approve a combined packet. Dispatch below is a local simulator, never delivery
@@ -19,11 +20,19 @@ export function createCaseWorkflow(ctx) {
     digest,
   } = ctx;
   db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_reviews(case_id TEXT PRIMARY KEY REFERENCES cases(id), fingerprint TEXT NOT NULL, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS participant_invites(hash TEXT PRIMARY KEY, case_id TEXT REFERENCES cases(id), expires INTEGER NOT NULL, consumed INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS packet_reviews(case_id TEXT PRIMARY KEY REFERENCES cases(id), fingerprint TEXT NOT NULL, packet TEXT NOT NULL, notes TEXT NOT NULL, approved_at TEXT NOT NULL, actor_id TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS deliveries(id TEXT PRIMARY KEY, root_case TEXT REFERENCES cases(id), destination TEXT NOT NULL, fingerprint TEXT NOT NULL, packet TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(root_case,destination,fingerprint));
     CREATE TABLE IF NOT EXISTS delivery_members(delivery_id TEXT REFERENCES deliveries(id), case_id TEXT REFERENCES cases(id), PRIMARY KEY(delivery_id,case_id));
   `);
+  run(
+    "UPDATE ai_reviews SET body=? WHERE json_extract(body, '$.status')='queued'",
+    JSON.stringify({
+      status: "unavailable",
+      message: "The server restarted. Run the comparison again.",
+    }),
+  );
   const destinations = {
     department_demo: "Demo department review desk",
     insurer_demo: "Demo insurance intake",
@@ -81,6 +90,14 @@ export function createCaseWorkflow(ctx) {
       liability: "Undetermined — no automated fault decision",
       statements,
     };
+    const sourceFingerprint = digest(JSON.stringify(content));
+    const savedAI = q("SELECT * FROM ai_reviews WHERE case_id=?", c.id);
+    const aiComparison =
+      savedAI?.fingerprint === sourceFingerprint
+        ? JSON.parse(savedAI.body)
+        : null;
+    if (aiComparison?.status === "complete")
+      content.ai_comparison = aiComparison.result;
     const reportText = [
       "BALLIGHNI — PRELIMINARY JOINT EVIDENCE REPORT",
       "Prototype only. Independent accounts are preserved; disagreement is not resolved automatically.",
@@ -99,6 +116,10 @@ export function createCaseWorkflow(ctx) {
         ...s.additional_information.map(
           (n) => `Additional reporter information: ${n.reason}`,
         ),
+        ...(s.ai?.workflow?.repair_reference?.scenarios || []).map(
+          (r) =>
+            `Conditional repair reference (not quote): AED ${r.low}-${r.high} | ${r.category} | ${r.assumption} | ${r.source_url}`,
+        ),
         s.requested_support
           ? `Requested communication/access support: ${s.requested_support}`
           : "",
@@ -108,11 +129,26 @@ export function createCaseWorkflow(ctx) {
         ? "Compare the separate accounts above. Conflicts, cause, liability, injuries and roadworthiness require appropriate human assessment."
         : "No second account has been linked. Do not infer agreement from its absence.",
       "No government or insurance decision has been issued.",
+      ...(aiComparison?.status === "complete"
+        ? [
+            "\nAI-ASSISTED TESTIMONY COMPARISON — UNVERIFIED",
+            ...aiComparison.result.summaries.map(
+              (s) =>
+                `[${s.source_id}] ${s.summary}\nExact source quote: ${s.quote}`,
+            ),
+            ...aiComparison.result.differences.map(
+              (d) =>
+                `Review question: ${d.question}\n[${d.source_a}] ${d.quote_a}\n[${d.source_b}] ${d.quote_b}`,
+            ),
+          ]
+        : []),
     ]
       .filter(Boolean)
       .join("\n");
     return {
       fingerprint: digest(JSON.stringify(content)),
+      source_fingerprint: sourceFingerprint,
+      ai_comparison: aiComparison,
       content,
       report_text: reportText,
       source_ids: sources.map((s) => s.id),
@@ -134,6 +170,7 @@ export function createCaseWorkflow(ctx) {
         event_time: p.event_time,
         location: p.location,
         testimony: p.confirmed_report || p.narrative,
+        original_testimony: p.narrative,
         findings: p.analysis?.findings || [],
       })),
       pending_connections: connected.filter((p) => p.decision === "pending")
@@ -178,7 +215,7 @@ export function createCaseWorkflow(ctx) {
       );
     const invite = q(
       "SELECT * FROM participant_invites WHERE hash=? AND expires>? AND consumed=0",
-      digest(String(b.join_code).trim()),
+      digest(text(b.join_code, "Participant invitation", 10, 40)),
       Date.now(),
     );
     if (!invite)
@@ -186,11 +223,28 @@ export function createCaseWorkflow(ctx) {
         400,
         "This participant invitation is invalid, expired or already used.",
       );
-    const source = q("SELECT owner_id FROM cases WHERE id=?", invite.case_id);
+    const source = q(
+      "SELECT owner_id,status,body FROM cases WHERE id=?",
+      invite.case_id,
+    );
+    if (
+      !source ||
+      !["submitted", "review", "more_info"].includes(source.status) ||
+      !JSON.parse(source.body).sharing_consent
+    )
+      fail(
+        409,
+        "The other participant's case is no longer available for sharing.",
+      );
     if (source.owner_id === user.id)
       fail(400, "A participant invitation must be used by the other account.");
-    run("UPDATE participant_invites SET consumed=1 WHERE hash=?", invite.hash);
     const [a, bid] = [invite.case_id, c.id].sort();
+    if (q("SELECT decision FROM links WHERE a=? AND b=?", a, bid))
+      fail(
+        409,
+        "These reports already have a connection decision. Ask the reviewer to check the existing relationship.",
+      );
+    run("UPDATE participant_invites SET consumed=1 WHERE hash=?", invite.hash);
     run("INSERT INTO links VALUES(?,?,?)", a, bid, "pending");
     audit(
       c.id,
@@ -207,7 +261,7 @@ export function createCaseWorkflow(ctx) {
   }
   async function handle(req, url, user, readBody) {
     const match = url.pathname.match(
-      /^\/api\/cases\/([A-Z0-9-]+)\/(invite|joint-report|review-packet|dispatch|sharing)$/,
+      /^\/api\/cases\/([A-Z0-9-]+)\/(invite|join|joint-report|review-packet|dispatch|sharing|ai-compare)$/,
     );
     if (!match) return { handled: false };
     const [, id, action] = match;
@@ -215,6 +269,71 @@ export function createCaseWorkflow(ctx) {
     const reviewer = () => {
       if (user.role !== "reviewer") fail(403, "Reviewer access is required.");
     };
+    if (action === "ai-compare" && req.method === "POST") {
+      reviewer();
+      if (process.env.TEXT_AI_ENABLED !== "true")
+        fail(503, "The local testimony AI is not enabled.");
+      const packet = buildPacket(c);
+      if (packet.content.statements.length < 2)
+        fail(409, "Approve a connection between two submitted accounts first.");
+      if (packet.ai_comparison?.status === "queued")
+        fail(409, "Testimony comparison is already queued.");
+      run(
+        "INSERT INTO ai_reviews VALUES(?,?,?) ON CONFLICT(case_id) DO UPDATE SET fingerprint=excluded.fingerprint,body=excluded.body",
+        id,
+        packet.source_fingerprint,
+        JSON.stringify({ status: "queued" }),
+      );
+      const statements = packet.content.statements.map((s) => ({
+        source_id: s.source_case_id,
+        reporter_role: s.reporter_role,
+        testimony: s.testimony,
+      }));
+      queueAI(async () => {
+        try {
+          const result = await compareStatements(statements);
+          run(
+            "UPDATE ai_reviews SET body=? WHERE case_id=? AND fingerprint=?",
+            JSON.stringify({ status: "complete", result }),
+            id,
+            packet.source_fingerprint,
+          );
+          audit(
+            id,
+            user,
+            "ai_testimony_compared",
+            "Source-quoted AI comparison prepared for human review; no original testimony changed.",
+          );
+        } catch (error) {
+          run(
+            "UPDATE ai_reviews SET body=? WHERE case_id=? AND fingerprint=?",
+            JSON.stringify({ status: "unavailable", message: error.message }),
+            id,
+            packet.source_fingerprint,
+          );
+        }
+      });
+      return { handled: true, value: { ok: true, status: "queued" } };
+    }
+    if (action === "join" && req.method === "POST") {
+      if (
+        q("SELECT owner_id FROM cases WHERE id=?", id).owner_id !== user.id ||
+        !["submitted", "review", "more_info"].includes(c.status)
+      )
+        fail(
+          403,
+          "Only the owner of an active submitted report can connect it.",
+        );
+      const b = await readBody(req);
+      if (!b.join_code)
+        fail(400, "Enter the other participant's invitation code.");
+      transaction(() => {
+        connectOnCreate(c, b, user);
+        c.sharing_consent = true;
+        save(c);
+      });
+      return { handled: true, value: { ok: true, pending_review: true } };
+    }
     if (action === "sharing" && req.method === "PATCH") {
       if (q("SELECT owner_id FROM cases WHERE id=?", id).owner_id !== user.id)
         fail(403, "Only the case owner can change sharing consent.");
@@ -291,6 +410,11 @@ export function createCaseWorkflow(ctx) {
       reviewer();
       if (c.status !== "review")
         fail(409, "Start review before approving a packet.");
+      if (buildPacket(c).ai_comparison?.status === "queued")
+        fail(
+          409,
+          "Wait for the requested AI comparison to finish before approving the packet.",
+        );
       const b = await readBody(req);
       if (b.confirm !== true)
         fail(

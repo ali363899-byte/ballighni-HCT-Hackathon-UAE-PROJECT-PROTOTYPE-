@@ -89,3 +89,6 @@ The static frontend can be hosted separately, then connected through **Connectio
 
 
 Free phone sharing: run `START-SHARED-BALLIGHNI.cmd` on the host Windows computer. See [temporary HTTPS sharing](docs/TEMPORARY-SHARING.md). Keep the computer awake; both phones must use the current printed URL. No paid cloud upgrade was made.
+
+
+Version 1.2 adds the navy/white/mint identity, voice/dictation and native Android speech, four AI stages, sourced conditional AED references and connection of already-submitted testimonies. Start with [the laptop guide](docs/LAPTOP-HOSTING.md), [AI workflow](docs/AI-WORKFLOW.md), [accessibility guide](docs/ACCESSIBILITY.md), and [delivery report](docs/DELIVERY-REPORT.md).

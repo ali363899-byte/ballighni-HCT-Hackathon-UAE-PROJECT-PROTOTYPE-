@@ -1,3 +1,6 @@
+import { installVoiceTools, setupVoiceDialog, stopVoice } from "./voice.js";
+import { mountAIWorkflow } from "./ai-workflow.js";
+import { homeScreen, refreshIcons, caseOverview, icon } from "./interface.js";
 import {
   applyAccessibility,
   accessibilityPage,
@@ -176,15 +179,14 @@ function heading(title, description, eyebrow = "YOUR REPORTING SPACE") {
   return `<div class="topline"><div class="page-intro"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div></div>`;
 }
 function home() {
-  $("#main").innerHTML =
-    `<div class="topline"><div><div class="eyebrow">ONE CONNECTED INCIDENT JOURNEY</div><h1>A little clarity, when it matters.</h1><p>Capture the facts. Bring the evidence together. Know what comes next.</p></div><span class="today">${new Date().toLocaleDateString("en-AE", { weekday: "long", month: "short", day: "numeric" })}</span></div>
-  <section class="hero"><div class="hero-copy"><div class="eyebrow">LESS FRICTION. MORE CLARITY.</div><h2>One report.<br>A clearer way<br><em>forward.</em></h2><p>From your first photo to human review, keep every part of the story in one place.</p><a class="primary" href="#report">Report an incident <span>↗</span></a><div class="hero-foot">◇ &nbsp; Your evidence. Your confirmation. Human oversight.</div></div><img src="scene.svg" alt="Illustration of a vehicle with an evidence review marker; not an actual damage analysis"></section>
-  <div class="section-head"><h2>How can we help?</h2><span>Choose the path that fits your situation</span></div><section class="action-grid" aria-label="Reporting options"><a class="action-card" href="#report"><span class="card-icon">＋</span><span class="card-arrow">↗</span><h3>I was involved</h3><p>Start a guided incident report and organize your evidence.</p></a><a class="action-card" href="#witness"><span class="card-icon">◎</span><span class="card-arrow">↗</span><h3>I witnessed an incident</h3><p>Add your perspective safely. Photos are always optional.</p></a><a class="action-card" href="#cases"><span class="card-icon">▤</span><span class="card-arrow">↗</span><h3>Follow my case</h3><p>See your report, review requests and the latest updates.</p></a></section>
-  <div class="lower-grid"><section class="panel"><h3>A simpler journey, from the start.</h3><div class="steps-row"><div><span class="step-num">01</span><h4>Capture once</h4><p>Share the details and permitted evidence.</p></div><div><span class="step-num">02</span><h4>Review your draft</h4><p>Check what is known and what is missing.</p></div><div><span class="step-num">03</span><h4>Stay informed</h4><p>Follow human review in one timeline.</p></div></div></section><section class="panel trust-panel"><div class="eyebrow">BUILT AROUND TRUST</div><h3>AI assists.<br>People decide.</h3><p>Every finding stays linked to its source. Final decisions always remain with people.</p><p class="tiny"><a href="#demo">Explore a synthetic example ↗</a></p></section></div>${safety}`;
+  $("#main").innerHTML = homeScreen(safety);
 }
+refreshIcons();
+setupVoiceDialog();
+
 function report(role = "driver") {
   $("#main").innerHTML =
-    `<div class="wizard">${heading(role === "witness" ? "Your perspective matters." : "Let’s start with safety.", "A few clear steps to organize what happened.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span class="current">01 / Safety</span><span>02 / Details & evidence</span><span>03 / Review & confirm</span></div><section class="panel"><h2>Is anyone injured or in immediate danger?</h2><p>Ballighni is a prototype for routine evidence reporting. Never approach danger, photograph victims, or delay urgent help.</p><div class="button-row"><button class="danger-button" id="danger-yes">Yes / I’m not sure</button><button class="secondary" id="safe-no">No immediate danger →</button></div><div id="safety-next"></div></section>${safety}</div>`;
+    `<div class="wizard">${heading(role === "witness" ? "Your perspective matters." : "Let’s start with safety.", "A few clear steps to organize what happened.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span class="current">01 / Safety</span><span>02 / Details & evidence</span><span>03 / Review & confirm</span></div><section class="panel safety-check"><span class="section-icon">${icon("shield")}</span><h2>Is anyone injured or in immediate danger?</h2><p>Ballighni is a prototype for routine evidence reporting. Never approach danger, photograph victims, or delay urgent help.</p><div class="button-row"><button class="danger-button" id="danger-yes">Yes / I’m not sure</button><button class="primary" id="safe-no">No immediate danger →</button></div><div id="safety-next"></div></section>${safety}</div>`;
   const stationary = document.createElement("label");
   stationary.className = "checkbox stationary-confirmation";
   stationary.innerHTML =
@@ -205,11 +207,11 @@ function report(role = "driver") {
 }
 function capture(role) {
   $("#main").innerHTML =
-    `<div class="wizard">${heading("Tell us what you observed.", "Record only what you know. Avoid names, number plates, victim images and unnecessary personal details.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span>01 / Safety ✓</span><span class="current">02 / Details & evidence</span><span>03 / Review & confirm</span></div><form id="capture-form" class="panel"><div class="form-grid"><label>Approximate location<input name="location" required minlength="3" maxlength="200" placeholder="e.g. Al Jurf, Ajman"></label><label>When did it happen?<input name="event_time" type="datetime-local" required></label><label class="wide">What happened?<textarea name="narrative" minlength="10" maxlength="3000" required placeholder="Describe what you directly observed. Distinguish facts from assumptions."></textarea></label></div><div class="upload-zone"><label>Photos <small>Optional · JPEG, PNG or WebP · up to 6 files, 8 MB each</small><input type="file" id="photos" accept="image/jpeg,image/png,image/webp" multiple></label><p>Use a safe wide view and an additional damage angle. Do not include people, plates or documents. Embedded metadata is removed by the server.</p><div id="photo-count" class="muted"></div></div><label class="checkbox"><input type="checkbox" name="consent" required><span>I have permission to submit this information and any photos. I understand this is a hackathon prototype, and agree to storage and authorized human review.</span></label><div class="form-error" id="capture-error" role="alert"></div><div class="button-row"><button class="primary" type="submit">Save & prepare draft →</button><a class="text-button" href="#home">Cancel</a></div></form></div>`;
+    `<div class="wizard">${heading("Tell us what you observed.", "Record only what you know. Avoid names, number plates, victim images and unnecessary personal details.", role === "witness" ? "WITNESS REPORT" : "DRIVER REPORT")}<div class="progress"><span>01 / Safety ✓</span><span class="current">02 / Details & evidence</span><span>03 / Review & confirm</span></div><form id="capture-form" class="panel capture-panel"><div class="form-section-title"><span>01</span><div><h2>The facts, in your words.</h2><p>Your statement stays yours, even if someone else remembers it differently.</p></div></div><div class="form-grid"><label>Approximate location<input name="location" required minlength="3" maxlength="200" placeholder="e.g. Al Jurf, Ajman"></label><label>When did it happen?<input name="event_time" type="datetime-local" required></label><label class="wide">What happened?<textarea name="narrative" minlength="10" maxlength="3000" required placeholder="Describe what you directly observed. Distinguish facts from assumptions."></textarea></label></div><div class="form-section-title"><span>02</span><div><h2>Add your evidence.</h2><p>AI can suggest visible damage observations. It cannot decide fault.</p></div></div><div class="upload-zone"><label>Photos <small>Optional · JPEG, PNG or WebP · up to 6 files, 8 MB each</small><input type="file" id="photos" accept="image/jpeg,image/png,image/webp" multiple></label><p>Use a safe wide view and an additional damage angle. Do not include people, plates or documents. Embedded metadata is removed by the server.</p><div id="photo-count" class="muted" role="status"></div><div id="photo-preview" class="photo-preview"></div></div><label class="checkbox"><input type="checkbox" name="consent" required><span>I have permission to submit this information and any photos. I understand this is a hackathon prototype, and agree to storage and authorized human review.</span></label><div class="form-error" id="capture-error" role="alert"></div><div class="button-row"><button class="primary" type="submit">Analyze evidence & prepare draft →</button><a class="text-button" href="#home">Cancel</a></div></form></div>`;
   const extra = document.createElement("section");
   extra.className = "capture-support";
-  extra.innerHTML = `<h3>Support and connected accounts</h3><label>Your involvement <small>Self-described only; this is not a legal determination.</small><select name="self_reported_position"><option value="${role === "witness" ? "witness" : "participant"}">${role === "witness" ? "Witness" : "Involved participant"}</option>${role === "witness" ? "" : '<option value="affected_participant">I consider myself an affected participant</option>'}</select></label><label>Communication / access support request <small>Optional. Visible to authorized reviewers. Do not enter a diagnosis or unnecessary personal details.</small><textarea name="support_request" maxlength="500" placeholder="For example: Please give me extra time. I prefer written communication."></textarea></label><button class="text-button" id="use-support-card" type="button">Use my saved communication card</button><label>Other participant’s private invitation code <small>Optional. Each person still submits a separate testimony.</small><input name="join_code" maxlength="40" placeholder="BLG-JOIN-…" autocomplete="off"></label><label class="checkbox"><input name="sharing_consent" type="checkbox"><span>I agree to share my confirmed account and damage observations with the connected participant after reviewer approval. Private photos and support requests are not shared with that person.</span></label>`;
-  $("#capture-form .upload-zone").before(extra);
+  extra.innerHTML = `<details class="optional-fields"><summary>Support and connected accounts <span>Optional</span></summary><div class="optional-body"><label>Your involvement <small>Self-described only; this is not a legal determination.</small><select name="self_reported_position"><option value="${role === "witness" ? "witness" : "participant"}">${role === "witness" ? "Witness" : "Involved participant"}</option>${role === "witness" ? "" : '<option value="affected_participant">I consider myself an affected participant</option>'}</select></label><label>Communication / access support request <small>Optional. Visible to authorized reviewers. Do not enter a diagnosis or unnecessary personal details.</small><textarea name="support_request" maxlength="500" placeholder="For example: Please give me extra time. I prefer written communication."></textarea></label><button class="text-button" id="use-support-card" type="button">Use my saved communication card</button><label>Other participant’s private invitation code <small>Optional. Each person still submits a separate testimony.</small><input name="join_code" maxlength="40" placeholder="BLG-JOIN-…" autocomplete="off"></label><label class="checkbox"><input name="sharing_consent" type="checkbox"><span>I agree to share my confirmed account and damage observations with the connected participant after reviewer approval. Private photos and support requests are not shared with that person.</span></label></div></details>`;
+  $("#capture-form .upload-zone").after(extra);
   $("#use-support-card").onclick = () => {
     $('[name="support_request"]').value = communicationCard();
     if (!communicationCard())
@@ -219,15 +221,42 @@ function capture(role) {
   input.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
+  let previewUrls = [];
   $("#photos").onchange = () => {
-    $("#photo-count").textContent =
-      `${$("#photos").files.length} photo(s) selected`;
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls = [];
+    const files = [...$("#photos").files];
+    $("#photo-count").textContent = files.length
+      ? `${files.length} photo(s) ready for upload`
+      : "No photos selected. You can continue with a text-only draft.";
+    $("#photo-preview").replaceChildren();
+    for (const [i, file] of files.entries()) {
+      const figure = document.createElement("figure");
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      previewUrls.push(url);
+      img.src = url;
+      img.alt = `Selected evidence photo ${i + 1}`;
+      const caption = document.createElement("figcaption");
+      caption.textContent = `Photo ${i + 1} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+      figure.append(img, caption);
+      $("#photo-preview").append(figure);
+    }
   };
+  installVoiceTools($("#main"));
   $("#capture-form").onsubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    const progress = document.createElement("div");
+    progress.className = "analysis-progress";
+    progress.setAttribute("role", "status");
+    progress.setAttribute("aria-live", "polite");
+    progress.innerHTML =
+      '<span class="loading-ring" aria-hidden="true"></span><div><strong>Saving your independent account…</strong><p>Keep this screen open. Your draft is saved before analysis begins.</p></div>';
+    button.closest(".button-row").before(progress);
     $("#capture-error").textContent = "";
     try {
       const files = [...$("#photos").files];
@@ -247,10 +276,15 @@ function capture(role) {
         consent: true,
         sharing_consent: form.elements.sharing_consent.checked,
       });
+      progress.querySelector("strong").textContent = "Uploading your evidence…";
       button.textContent = "Uploading evidence…";
       for (const file of files) await upload(current.id, file);
+      progress.querySelector("strong").textContent = files.length
+        ? "Analyzing visible damage and preparing your draft…"
+        : "Preparing your text-only draft…";
       button.textContent = "Preparing report…";
       current = await post(`/cases/${current.id}/analyze`);
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
       location.hash = `case/${current.id}`;
     } catch (error) {
       $("#capture-error").textContent =
@@ -258,8 +292,10 @@ function capture(role) {
         (current?.status === "draft"
           ? ` Your saved draft is in My cases (${current.id}).`
           : "");
+      progress.remove();
+      form.removeAttribute("aria-busy");
       button.disabled = false;
-      button.textContent = "Save & prepare draft →";
+      button.textContent = "Analyze evidence & prepare draft →";
     }
   };
 }
@@ -307,7 +343,10 @@ async function detail(id, synthetic = false) {
   current = c;
   const reviewer = !synthetic && user?.role === "reviewer";
   $("#main").innerHTML =
-    `<div class="topline"><div><div class="eyebrow">${synthetic ? "SYNTHETIC EXAMPLE · READ ONLY" : "CASE FILE"}</div><h1>${escape(c.id)}</h1><p>${escape(c.location)}</p></div>${badge(c.status)}</div>${synthetic ? '<div class="notice warning">This example contains fictional text only. No live AI was run and no official report has been created. <a href="#report">Start your own report →</a></div>' : ""}<div class="detail-grid"><div><section class="panel"><dl class="meta"><div><dt>REPORT TYPE</dt><dd>${escape(c.reporter_role)}</dd></div><div><dt>INCIDENT TIME</dt><dd>${date(c.event_time)}</dd></div><div><dt>RECEIVED</dt><dd>${date(c.created_at)}</dd></div></dl><h3>Reporter’s account</h3><p class="narrative">${escape(c.narrative)}</p><h3>Evidence</h3><div id="evidence" class="evidence-grid"></div>${!c.evidence.length ? '<p class="muted">No photos attached. Visual damage cannot be established.</p>' : ""}${!synthetic && ((c.status === "draft" && !reviewer) || (c.status === "more_info" && !reviewer)) ? '<label class="upload-zone">Add permitted evidence<input type="file" id="additional-photo" accept="image/jpeg,image/png,image/webp"></label>' : ""}</section><section class="panel"><div class="section-head"><h3>Evidence findings</h3><span>${c.analysis?.mode === "ai" ? "AI observations · unverified" : "Manual drafting mode"}</span></div>${c.analysis?.warning ? `<div class="notice warning">${escape(c.analysis.warning)}</div>` : ""}${(c.analysis?.findings || []).map((f) => `<article class="finding"><p>${escape(f.observation)}</p><small>Source: ${escape(f.source_id)}${f.confidence !== undefined ? ` · Model score: ${Math.round(f.confidence * 100)}% (not calibrated certainty)` : ""}</small><p class="muted">${escape(f.uncertainty)}</p></article>`).join("") || "<p>No automated damage observation is available. This does not mean the vehicle is undamaged.</p>"}${c.analysis?.model ? `<p class="muted">Model: ${escape(c.analysis.model)}</p>` : ""}<div class="notice">${escape(c.analysis?.limitation || "Prepare a draft to organize known and missing information. AI does not decide fault, injuries or roadworthiness.")}</div>${(c.analysis?.missing || []).map((m) => `<p class="muted">○ ${escape(m)}</p>`).join("")}${!synthetic && c.status === "draft" && !reviewer ? '<button class="secondary" id="analyze">Prepare / retry analysis ↗</button>' : ""}</section><section class="panel"><h3>${c.status === "draft" ? "Check and confirm your draft" : "Confirmed report"}</h3>${c.status === "draft" && !synthetic && !reviewer ? `<form id="confirm-form"><label>Edit the report before submitting<textarea name="report" required minlength="10" maxlength="6000">${escape(c.analysis?.narrative || "")}</textarea></label><label class="checkbox"><input type="checkbox" required><span>I checked this draft and understand that it is a preliminary account for human review.</span></label><button class="primary" ${!c.analysis ? "disabled" : ""}>Confirm & submit →</button></form>` : `<p class="narrative">${escape(c.confirmed_report || c.analysis?.narrative || "Draft has not been confirmed.")}</p>`}</section>${reviewer ? `<section class="panel"><h3>Possible related reports</h3><p>Suggestions use entered location and time. Accepting a link preserves both reports; it does not merge accounts or determine fault.</p>${(c.matches || []).map((m) => `<div class="finding"><a href="#case/${m.id}"><strong>${escape(m.id)} ↗</strong></a><p>${escape(m.reason)}</p><span class="badge">${escape(m.decision)}</span>${m.decision === "pending" ? `<div class="button-row"><button class="secondary link-action" data-other="${m.id}" data-decision="accepted">Accept link</button><button class="secondary link-action" data-other="${m.id}" data-decision="rejected">Reject link</button></div>` : ""}</div>`).join("") || '<p class="muted">No same-location reports within 30 minutes were found.</p>'}<label>Reason for a match decision<input id="link-reason" minlength="5" maxlength="2000" placeholder="Record why these accounts may or may not relate"></label></section>` : ""}</div><aside><section class="panel"><h3>Case timeline</h3><ol class="timeline">${c.updates.map((u) => `<li><strong>${escape(label(u.action))}</strong><p>${escape(u.reason)}</p><time>${date(u.created_at)}</time></li>`).join("")}</ol>${!synthetic ? '<button class="text-button" id="refresh-case">Refresh updates ↻</button>' : ""}</section>${reviewer && c.status !== "closed" ? `<section class="panel"><h3>Next review action</h3><form id="status-form"><label>Next status<select name="status" required>${({ submitted: ["review", "more_info"], review: ["more_info", "closed"], more_info: ["review"] }[c.status] || []).map((s) => `<option value="${s}">${label(s)}</option>`).join("")}</select></label><label>Reason / request<textarea name="reason" required minlength="5" maxlength="2000" placeholder="Explain the action. Requests are visible to the reporter."></textarea></label><button class="primary">Save review action →</button></form></section>` : ""}${!synthetic && !reviewer && c.status === "more_info" ? '<section class="panel"><h3>Respond to the request</h3><p>Read the reviewer’s request in your timeline. Add photos if needed, then reply.</p><form id="response-form"><label>Your response<textarea name="message" required minlength="5" maxlength="2000"></textarea></label><button class="primary">Send for review →</button></form></section>' : ""}<section class="panel trust-panel"><h3>Keep a copy.</h3><p>Your case export includes the structured report and timeline. Images remain in the protected case.</p><button class="secondary" id="export-case">Export case JSON ↓</button></section></aside></div>${safety}`;
+    `<div class="topline"><div><div class="eyebrow">${synthetic ? "SYNTHETIC EXAMPLE · READ ONLY" : "CASE FILE"}</div><h1>${escape(c.id)}</h1><p>${escape(c.location)}</p></div>${badge(c.status)}</div>${synthetic ? '<div class="notice warning">This example contains fictional text only. No live AI was run and no official report has been created. <a href="#report">Start your own report →</a></div>' : ""}<div class="detail-grid"><div><section class="panel"><dl class="meta"><div><dt>REPORT TYPE</dt><dd>${escape(c.reporter_role)}</dd></div><div><dt>INCIDENT TIME</dt><dd>${date(c.event_time)}</dd></div><div><dt>RECEIVED</dt><dd>${date(c.created_at)}</dd></div></dl><h3>Reporter’s account</h3><p class="narrative">${escape(c.narrative)}</p><h3>Evidence</h3><div id="evidence" class="evidence-grid"></div>${!c.evidence.length ? '<p class="muted">No photos attached. Visual damage cannot be established.</p>' : ""}${!synthetic && ((c.status === "draft" && !reviewer) || (c.status === "more_info" && !reviewer)) ? '<label class="upload-zone">Add permitted evidence<input type="file" id="additional-photo" accept="image/jpeg,image/png,image/webp"></label>' : ""}</section><section class="panel"><div class="section-head"><h3>Evidence findings</h3><span>${c.analysis?.mode === "ai" ? "AI observations · unverified" : "Manual drafting mode"}</span></div>${c.analysis?.warning ? `<div class="notice warning">${escape(c.analysis.warning)}</div>` : ""}${(c.analysis?.findings || []).map((f) => `<article class="finding"><p>${escape(f.observation)}</p><small>Source: ${escape(f.source_id)}${f.confidence !== undefined ? ` · Model score: ${Math.round(f.confidence * 100)}% (not calibrated certainty)` : ""}</small><p class="muted">${escape(f.uncertainty)}</p></article>`).join("") || "<p>No automated damage observation is available. This does not mean the vehicle is undamaged.</p>"}${c.analysis?.model ? `<p class="muted">Model: ${escape(c.analysis.model)}</p>` : ""}<div class="notice">${escape(c.analysis?.limitation || "Prepare a draft to organize known and missing information. AI does not decide fault, injuries or roadworthiness.")}</div>${(c.analysis?.missing || []).map((m) => `<p class="muted">○ ${escape(m)}</p>`).join("")}${!synthetic && c.status === "draft" && !reviewer ? '<button class="secondary" id="analyze">Analyze evidence / retry ↗</button>' : ""}</section><section class="panel"><h3>${c.status === "draft" ? "Check and confirm your draft" : "Confirmed report"}</h3>${c.status === "draft" && !synthetic && !reviewer ? `<form id="confirm-form"><label>Edit the report before submitting<textarea name="report" required minlength="10" maxlength="6000">${escape(c.analysis?.narrative || "")}</textarea></label><label class="checkbox"><input type="checkbox" required><span>I checked this draft and understand that it is a preliminary account for human review.</span></label><button class="primary" ${!c.analysis ? "disabled" : ""}>Confirm & submit →</button></form>` : `<p class="narrative">${escape(c.confirmed_report || c.analysis?.narrative || "Draft has not been confirmed.")}</p>`}</section>${reviewer ? `<section class="panel"><h3>Possible related reports</h3><p>Suggestions use entered location and time. Accepting a link preserves both reports; it does not merge accounts or determine fault.</p>${(c.matches || []).map((m) => `<div class="finding"><a href="#case/${m.id}"><strong>${escape(m.id)} ↗</strong></a><p>${escape(m.reason)}</p><span class="badge">${escape(m.decision)}</span>${m.decision === "pending" ? `<div class="button-row"><button class="secondary link-action" data-other="${m.id}" data-decision="accepted">Accept link</button><button class="secondary link-action" data-other="${m.id}" data-decision="rejected">Reject link</button></div>` : ""}</div>`).join("") || '<p class="muted">No same-location reports within 30 minutes were found.</p>'}<label>Reason for a match decision<input id="link-reason" minlength="5" maxlength="2000" placeholder="Record why these accounts may or may not relate"></label></section>` : ""}</div><aside><section class="panel"><h3>Case timeline</h3><ol class="timeline">${c.updates.map((u) => `<li><strong>${escape(label(u.action))}</strong><p>${escape(u.reason)}</p><time>${date(u.created_at)}</time></li>`).join("")}</ol>${!synthetic ? '<button class="text-button" id="refresh-case">Refresh updates ↻</button>' : ""}</section>${reviewer && c.status !== "closed" ? `<section class="panel"><h3>Next review action</h3><form id="status-form"><label>Next status<select name="status" required>${({ submitted: ["review", "more_info"], review: ["more_info", "closed"], more_info: ["review"] }[c.status] || []).map((s) => `<option value="${s}">${label(s)}</option>`).join("")}</select></label><label>Reason / request<textarea name="reason" required minlength="5" maxlength="2000" placeholder="Explain the action. Requests are visible to the reporter."></textarea></label><button class="primary">Save review action →</button></form></section>` : ""}${!synthetic && !reviewer && c.status === "more_info" ? '<section class="panel"><h3>Respond to the request</h3><p>Read the reviewer’s request in your timeline. Add photos if needed, then reply.</p><form id="response-form"><label>Your response<textarea name="message" required minlength="5" maxlength="2000"></textarea></label><button class="primary">Send for review →</button></form></section>' : ""}<section class="panel trust-panel"><h3>Keep a copy.</h3><p>Your case export includes the structured report and timeline. Images remain in the protected case.</p><button class="secondary" id="export-case">Export case JSON ↓</button></section></aside></div>${safety}`;
+  const overview = document.createElement("div");
+  overview.innerHTML = caseOverview(c, escape);
+  $(".detail-grid").before(overview);
   for (const url of imageUrls) URL.revokeObjectURL(url);
   imageUrls = [];
   const findingsPanel = [...document.querySelectorAll(".panel")].find(
@@ -344,7 +383,7 @@ async function detail(id, synthetic = false) {
       img.src = src;
       img.alt = `Evidence photo ${e.id}`;
       const caption = document.createElement("figcaption");
-      caption.textContent = e.id;
+      caption.textContent = `Photo ${imageUrls.length} · ${e.id}`;
       const frame = document.createElement("div");
       frame.className = "photo-frame";
       frame.append(img);
@@ -391,6 +430,30 @@ async function detail(id, synthetic = false) {
       refresh: () => detail(id),
       toast,
     });
+  if (!synthetic) mountAIWorkflow({ c, api, escape, toast, user });
+  const sections = [...document.querySelectorAll(".detail-grid .panel")];
+  const targetTitles = [
+    "Reporter’s account",
+    "Evidence findings",
+    c.status === "draft" ? "Check and confirm your draft" : "Confirmed report",
+    "Participant statements",
+    "Case timeline",
+  ];
+  for (const jump of document.querySelectorAll("[data-section]")) {
+    jump.onclick = () => {
+      const target = sections.find((p) =>
+        [...p.querySelectorAll("h2,h3")].some(
+          (h) => h.textContent === targetTitles[Number(jump.dataset.section)],
+        ),
+      );
+      target?.scrollIntoView({
+        behavior: document.documentElement.classList.contains("reduce-motion")
+          ? "auto"
+          : "smooth",
+        block: "start",
+      });
+    };
+  }
   if ($("#correction-form"))
     $("#correction-form").onsubmit = (e) => {
       e.preventDefault();
@@ -559,6 +622,7 @@ function about() {
     `<div class="prose">${heading("One connected case.", "A practical prototype by Fantastic Four, built for a clearer evidence-to-review journey.", "ABOUT BALLIGHNI")}<section class="panel"><h2>Capture once. Review clearly.</h2><p>Ballighni helps drivers and witnesses organize incident details, permitted photographs and preliminary findings. A reviewer checks the original evidence, requests missing information, reviews possible related reports and updates the case timeline.</p><h2>AI is an assistant.</h2><p>Automated observations are preliminary, source-linked and open to correction. The app cannot decide liability, diagnose injuries, establish accident cause or certify a vehicle as safe to drive. A missing detection does not prove an absence of damage.</p><h2>Your information</h2><p>Only your account and authorized team reviewers can access your cases. Evidence is stored on the connected backend, with image metadata removed. Use synthetic or explicitly permitted data for this prototype. The backend owner controls data retention; accounts and reports are not automatically deleted in this version.</p><h2>Prototype boundaries</h2><p>This is not an official government, police, emergency or insurance reporting service. Status updates and case references belong to this prototype. There is no live dispatch or official report issuance.</p><a class="primary" href="#demo">Explore the synthetic case →</a></section>${safety}</div>`;
 }
 async function route() {
+  stopVoice();
   const hash = location.hash.slice(1) || "home";
   const section = hash.split("/")[0];
   document
@@ -595,6 +659,7 @@ async function route() {
     $("#main").innerHTML =
       `${heading("Let’s reconnect.", "Your saved cases remain on the backend.")}<div class="notice warning">${escape(e.message)}</div><div class="button-row"><a class="primary" href="#settings">Connection settings →</a><a class="secondary" href="#home">Back to overview</a></div>`;
   }
+  installVoiceTools($("#main"));
   window.scrollTo(0, 0);
 }
 $("#account-button").onclick = async () => {
@@ -676,7 +741,10 @@ setInterval(async () => {
     location.hash.startsWith("#case/") &&
     current &&
     ["submitted", "review", "closed"].includes(current.status) &&
-    !document.querySelector("dialog[open]") &&
+    !document.querySelector(
+      "dialog[open], #main details[open], #participant-code input",
+    ) &&
+    !document.body.classList.contains("voice-listening") &&
     !document.activeElement?.matches("input,textarea,select")
   ) {
     const scroll = window.scrollY;

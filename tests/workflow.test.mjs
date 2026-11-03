@@ -296,3 +296,115 @@ test("independent testimony, consent, reviewer approval and simulated dual routi
     404,
   );
 });
+
+test("already-submitted reports connect by consent without changing either testimony", async () => {
+  const a = await account("existing_a"),
+    b = await account("existing_b"),
+    outsider = await account("existing_outsider"),
+    reviewer = await account("existing_reviewer", true);
+  const aid = await submit(a, {
+    location: "Independent spelling A",
+    narrative:
+      "I was stopped before the other vehicle moved. This is account A.",
+  });
+  const bid = await submit(b, {
+    location: "Independent spelling B",
+    narrative:
+      "I was moving slowly and saw the other vehicle moving. This is account B.",
+  });
+  const beforeA = (await call(`/cases/${aid}`, "GET", null, a)).data;
+  const beforeB = (await call(`/cases/${bid}`, "GET", null, b)).data;
+  const invitation = (
+    await call(`/cases/${aid}/invite`, "POST", { sharing_consent: true }, a)
+  ).data;
+  assert.equal(
+    (
+      await call(
+        `/cases/${bid}/join`,
+        "POST",
+        { join_code: invitation.code, sharing_consent: false },
+        b,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await call(
+        `/cases/${bid}/join`,
+        "POST",
+        { join_code: invitation.code, sharing_consent: true },
+        outsider,
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await call(
+        `/cases/${aid}/join`,
+        "POST",
+        { join_code: invitation.code, sharing_consent: true },
+        a,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await call(
+        `/cases/${bid}/join`,
+        "POST",
+        { join_code: invitation.code, sharing_consent: true },
+        b,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await call(`/cases/${bid}`, "GET", null, b)).data.shared_reports.length,
+    0,
+  );
+  assert.equal(
+    (await call(`/cases/${aid}/ai-compare`, "POST", {}, a)).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        `/cases/${aid}/link`,
+        "POST",
+        {
+          other_id: bid,
+          decision: "accepted",
+          reason:
+            "Private invitation confirms related synthetic incident; statements disagree.",
+        },
+        reviewer,
+      )
+    ).status,
+    200,
+  );
+  const afterA = (await call(`/cases/${aid}`, "GET", null, a)).data;
+  const afterB = (await call(`/cases/${bid}`, "GET", null, b)).data;
+  assert.equal(afterA.narrative, beforeA.narrative);
+  assert.equal(afterB.narrative, beforeB.narrative);
+  assert.equal(afterA.confirmed_report, beforeA.confirmed_report);
+  assert.equal(afterB.confirmed_report, beforeB.confirmed_report);
+  assert.equal(afterA.shared_reports[0].original_testimony, beforeB.narrative);
+  assert.equal(afterB.shared_reports[0].original_testimony, beforeA.narrative);
+  const second = (
+    await call(`/cases/${aid}/invite`, "POST", { sharing_consent: true }, a)
+  ).data;
+  assert.equal(
+    (
+      await call(
+        `/cases/${bid}/join`,
+        "POST",
+        { join_code: second.code, sharing_consent: true },
+        b,
+      )
+    ).status,
+    409,
+  );
+});

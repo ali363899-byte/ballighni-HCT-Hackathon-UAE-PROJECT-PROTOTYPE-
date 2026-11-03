@@ -20,3 +20,17 @@
 | Private local data          | `data/`, `.env`                                    | Database, images and machine settings; never commit                         |
 
 Start with `START-HERE.md`. The source repository is private. The invited teammate uses their own GitHub account and their own app account. Accepting a repository invitation does not grant app reviewer access.
+
+
+## New in 1.2
+
+| File | What it does |
+|---|---|
+| frontend/design.css, interface.js | Navy/white/mint design, overview and case progress |
+| frontend/ai-workflow.js | Visible AI stages, background progress and explicit draft insertion |
+| frontend/voice.js | Voice dialog, editable dictation, read-aloud and safe command whitelist |
+| backend/ai-workflow.mjs | Assessment/testimony/report model roles and source-based AED reference engine |
+| backend/case-workflow.mjs | Existing-report invitations, consent, exact-quote reviewer comparison and simulated receipts |
+| android/.../BallighniVoicePlugin.java | Native Android speech recognition and text-to-speech |
+| docs/LAPTOP-HOSTING.md | Step-by-step hosting and two-participant demo |
+| docs/AI-WORKFLOW.md, ACCESSIBILITY.md, DESIGN.md | AI limits, speech/device behavior and visual identity |

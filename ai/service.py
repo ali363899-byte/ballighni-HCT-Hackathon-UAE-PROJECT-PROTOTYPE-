@@ -20,6 +20,8 @@ if MODEL_PATH.suffix == '.onnx':
     model = DamageDetector(MODEL_PATH)
     MODEL_ID = 'damagelens-yolo-2b9ae06'
 else:
+    import torch
+    torch.set_num_threads(int(os.environ.get('DAMAGE_AI_THREADS', '2')))
     from ultralytics import YOLO
     model = YOLO(str(MODEL_PATH))
     MODEL_ID = 'artemxdata-yolov8n-cardd-e4879d4'
