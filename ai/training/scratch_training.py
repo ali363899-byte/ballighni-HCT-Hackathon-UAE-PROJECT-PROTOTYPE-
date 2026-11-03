@@ -9,7 +9,7 @@ REPO = 'tugberkkalay/autodamageiq-vehicle-damage-dataset'
 REVISION = 'b5abbf54bdf7c8817a4e20b6ab39c8f1fe98a0e5'
 MODEL_URL = 'https://media.githubusercontent.com/media/ReverendBayes/YOLO11m-Car-Damage-Detector/cd1cb118b5111634b49e02b3dc790f2636d49d82/trained.pt'
 MODEL_SHA = '40d324e82d8a9cef052d747bba1b65ba70e66fa2153cc832570370128d2c3818'
-NAMES = {0:'dent',1:'scratch',2:'crack',3:'glass shatter',4:'lamp broken',5:'tire flat'}
+NAMES = {0:'dent',1:'scratch',2:'crack',3:'shattered_glass',4:'broken_lamp',5:'flat_tire'}
 CLASS_MAP = {0:2,1:0,2:3,3:4,4:1,5:5}
 
 def fetch_file(remote, target):
@@ -33,8 +33,9 @@ def prepare(root, train_count=800, val_count=160, test_count=160):
     metadata = requests.get(f'https://huggingface.co/api/datasets/{REPO}/revision/{REVISION}',timeout=60)
     metadata.raise_for_status()
     files = [x['rfilename'] for x in metadata.json()['siblings']]
-    train = [p for p in files if p.startswith('images/train/vehide_') and p.endswith('.jpg')]
-    evaluation = [p for p in files if p.startswith('images/val/vehide_') and p.endswith('.jpg')]
+    file_set = set(files)
+    train = [p for p in files if p.replace('images/','labels/').rsplit('.',1)[0]+'.txt' in file_set and p.startswith('images/train/vehide_') and p.endswith('.jpg')]
+    evaluation = [p for p in files if p.replace('images/','labels/').rsplit('.',1)[0]+'.txt' in file_set and p.startswith('images/val/vehide_') and p.endswith('.jpg')]
     def unique_groups(paths):
         buckets = {}
         for p in paths: buckets.setdefault(group_key(p), p)
