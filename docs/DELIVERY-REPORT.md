@@ -2,7 +2,7 @@
 
 Fantastic Four · 3 November 2026
 
-Private repository: https://github.com/ali363899-byte/ballighni. Owner ali363899-byte and accepted collaborator abdulrahmanabuseedo can work together in Visual Studio Code. Open ballighni.code-workspace. START-HERE.md maps the code and guides.
+Private repository: https://github.com/ali363899-byte/ballighni-HCT-Hackathon-UAE-PROJECT-PROTOTYPE-. Owner ali363899-byte and accepted collaborator abdulrahmanabuseedo can work together in Visual Studio Code. Open ballighni.code-workspace. START-HERE.md maps the code and guides.
 
 ## Delivered in this update
 

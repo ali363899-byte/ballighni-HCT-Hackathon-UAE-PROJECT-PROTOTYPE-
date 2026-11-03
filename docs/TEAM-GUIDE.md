@@ -2,7 +2,7 @@
 
 ## Owner and collaborator
 
-Repository: https://github.com/ali363899-byte/ballighni
+Repository: https://github.com/ali363899-byte/ballighni-HCT-Hackathon-UAE-PROJECT-PROTOTYPE-
 
 Owner: `ali363899-byte`. Collaborator: `abdulrahmanabuseedo`. The invitation has been accepted; both developers have access.
 
