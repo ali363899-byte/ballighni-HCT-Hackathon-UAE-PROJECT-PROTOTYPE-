@@ -7,10 +7,10 @@ import threading
 from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent
-MODEL_PATH = Path(os.environ.get('DAMAGE_MODEL_PATH', ROOT / 'models' / 'damage-yolov8n.pt'))
+MODEL_PATH = Path(os.environ.get('DAMAGE_MODEL_PATH', ROOT / 'models' / 'damage-yolo11m.pt'))
 TOKEN = os.environ.get('BALLIGHNI_AI_TOKEN')
 if not TOKEN:
     raise RuntimeError('Use npm run start:ai to supply the private inference token.')
@@ -24,7 +24,7 @@ else:
     torch.set_num_threads(int(os.environ.get('DAMAGE_AI_THREADS', '2')))
     from ultralytics import YOLO
     model = YOLO(str(MODEL_PATH))
-    MODEL_ID = 'artemxdata-yolov8n-cardd-e4879d4'
+    MODEL_ID = 'reverendbayes-yolo11m-cardd-cd1cb11' if MODEL_PATH.name == 'damage-yolo11m.pt' else 'artemxdata-yolov8n-cardd-e4879d4'
 lock = threading.Lock()
 app = FastAPI(title='Ballighni damage inference', docs_url=None, redoc_url=None)
 
@@ -50,7 +50,7 @@ def analyze(photo: Photo, authorization: str | None = Header(default=None)):
         image = Image.open(io.BytesIO(raw))
         if image.format not in ('JPEG', 'PNG', 'WEBP'):
             raise ValueError('Unsupported image')
-        image = image.convert('RGB')
+        image = ImageOps.exif_transpose(image).convert('RGB')
     except Exception as exc:
         raise HTTPException(400, 'Invalid image') from exc
     if not lock.acquire(blocking=False):
@@ -58,11 +58,11 @@ def analyze(photo: Photo, authorization: str | None = Header(default=None)):
     try:
         if MODEL_PATH.suffix == '.onnx':
             return {'model': MODEL_ID, 'detections': model.predict(image)}
-        result = model.predict(image, conf=0.45, imgsz=640, device='cpu', verbose=False, max_det=30)[0]
+        result = model.predict(image, conf=0.45, imgsz=960, device='cpu', verbose=False, max_det=30)[0]
         detections = []
         for box in result.boxes:
             detections.append({
-                'label': model.names[int(box.cls[0])],
+                'label': {'shattered_glass': 'glass shatter', 'broken_lamp': 'lamp broken', 'flat_tire': 'tire flat'}.get(model.names[int(box.cls[0])], model.names[int(box.cls[0])]),
                 'confidence': round(float(box.conf[0]), 4),
                 'box': [round(float(v), 4) for v in box.xyxyn[0]],
             })

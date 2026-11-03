@@ -47,7 +47,7 @@ export async function analyze(caseData, evidence, config = process.env) {
         "scratch",
         "tire flat",
       ]);
-      for (const item of analyzable.slice(0, 4)) {
+      for (const item of analyzable.slice(0, 6)) {
         const response = await fetch(
           `${config.DAMAGE_AI_URL || "http://127.0.0.1:8787"}/analyze`,
           {
@@ -66,6 +66,7 @@ export async function analyze(caseData, evidence, config = process.env) {
           ![
             "damagelens-yolo-2b9ae06",
             "artemxdata-yolov8n-cardd-e4879d4",
+            "reverendbayes-yolo11m-cardd-cd1cb11",
           ].includes(result.model)
         )
           throw new Error("Unknown damage model");
@@ -120,7 +121,7 @@ export async function analyze(caseData, evidence, config = process.env) {
   if (config.AI_PROVIDER !== "ollama" || !evidence.length) return base;
   try {
     const observations = [];
-    for (const item of analyzable.slice(0, 4)) {
+    for (const item of analyzable.slice(0, 6)) {
       const response = await fetch(
         `${config.OLLAMA_URL || "http://127.0.0.1:11434"}/api/chat`,
         {
