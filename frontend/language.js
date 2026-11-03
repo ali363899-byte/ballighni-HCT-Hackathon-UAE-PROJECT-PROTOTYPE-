@@ -212,8 +212,10 @@ function apply() {
   }
   const button = document.querySelector("#language-toggle");
   if (button) {
-    button.textContent = language === "ar" ? "English" : "العربية";
-    button.lang = language === "ar" ? "en" : "ar";
+    const label = language === "ar" ? "English" : "العربية";
+    if (button.textContent !== label) button.textContent = label;
+    const lang = language === "ar" ? "en" : "ar";
+    if (button.lang !== lang) button.lang = lang;
   }
 }
 export function setupLanguage() {

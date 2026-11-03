@@ -75,9 +75,12 @@
       <div class="eyebrow">YOUR BALLIGHNI ACCOUNT</div>
       <h2 id="auth-title">Welcome back.</h2>
       <p>Keep your reports and evidence in one place.</p>
-      <form id="auth-form">
+      <form id="auth-form" novalidate>
         <label
-          >Username<input
+          >Username
+          <small
+            >3–50 English letters, numbers, dots, underscores or hyphens</small
+          ><input
             name="username"
             autocomplete="username"
             required
@@ -85,7 +88,8 @@
             maxlength="50"
             pattern="[a-zA-Z0-9_.-]+" /></label
         ><label
-          >Password<input
+          >Password <small>New accounts need at least 12 characters</small
+          ><input
             name="password"
             type="password"
             autocomplete="current-password"

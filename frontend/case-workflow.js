@@ -13,6 +13,7 @@ export async function mountCaseWorkflow({
   if (!host) return;
   const node = document.createElement("section");
   node.className = "panel participant-panel";
+  node.dataset.caseSection = "participants";
   const active = ["submitted", "review", "more_info"].includes(c.status);
   const shared = c.shared_reports || [];
   const statement = (title, original, confirmed, reference, own = false) =>
