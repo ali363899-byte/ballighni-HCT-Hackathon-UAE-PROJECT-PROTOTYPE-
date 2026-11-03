@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-03",
+  "status": "completed_not_promoted",
+  "gpu": "Free Google Colab Tesla T4",
+  "epochs": 12,
+  "train_images": 800,
+  "validation_images": 160,
+  "test_images": 160,
+  "dataset_revision": "b5abbf54bdf7c8817a4e20b6ab39c8f1fe98a0e5",
+  "candidate_sha256": "a2d480d0d09eae77fbcb4edadba95d3685195e3f0567589d1c75f328ef834e95",
+  "baseline_test": {
+    "scratch_precision": 0.15916460846119707,
+    "scratch_recall": 0.19330855018587362,
+    "scratch_ap50": 0.06628057571999375,
+    "scratch_ap50_95": 0.020105924434567955
+  },
+  "candidate_test": {
+    "scratch_precision": 0.24886236944849374,
+    "scratch_recall": 0.21189591078066913,
+    "scratch_ap50": 0.14052300781132304,
+    "scratch_ap50_95": 0.05442637281228426
+  },
+  "small_scratch_test": {
+    "definition": "Scratch annotation box <=1% of image area; not a physical width measurement",
+    "confidence": 0.45,
+    "iou": 0.5,
+    "labels": 99,
+    "baseline_matched": 3,
+    "candidate_matched": 0
+  },
+  "decision": "Rejected for live deployment: small-scratch performance worsened and absolute precision/recall are inadequate. Existing live detector retained.",
+  "metric_note": "Ultralytics precision/recall are measured at its selected F1 operating point, not calibrated certainty or production confidence. Dataset has broad and automatic labels and lacks some app damage classes; these are pilot results only.",
+  "colab": "https://colab.research.google.com/drive/1Y6wMefuJtT_kA7pLP7nBw_BZTtWmnB7I",
+  "checkpoint_location": "Colab runtime /content/ballighni-training/runs/scratch_finetune/weights/best.pt; results download cells provided in notebook. No checkpoint deployed."
+}

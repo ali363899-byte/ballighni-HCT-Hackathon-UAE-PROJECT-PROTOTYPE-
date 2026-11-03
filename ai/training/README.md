@@ -19,3 +19,6 @@ New backend uploads retain up to 3072 pixels on the longest edge at JPEG quality
 Keep the Colab notebook open. Free runtimes can disconnect; download the results ZIP when complete. The ZIP contains weights, split/hash manifest and comparison metrics. Review precision, recall and annotated examples before replacing the live detector.
 
 The notebook also reports recall at confidence 0.45 and IoU 0.5 for held-out scratch boxes covering at most 1% of the image. This is image-relative annotation size, not scratch width in millimetres. Fewer than 20 such labels is flagged as an inadequate sample.
+
+## Completed result
+See RESULTS-2026-11-03.md and RESULTS-2026-11-03.json. Training and held-out evaluations completed; candidate rejected because small-scratch recall fell from 3/99 to 0/99. Existing detector retained.
