@@ -2,6 +2,15 @@
   "appId": "ae.fantasticfour.ballighni",
   "appName": "Ballighni",
   "webDir": "dist",
-  "android": { "allowMixedContent": false },
-  "server": { "androidScheme": "https" }
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
 }

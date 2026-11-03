@@ -1,4 +1,4 @@
-# Ballighni 1.3.0 delivery report
+# Ballighni 1.3.1 delivery report
 
 Fantastic Four · 3 November 2026
 
@@ -98,3 +98,12 @@ The larger model returned hood dent regions missed by the former model in the co
 
 ## Try it
 Install this release's Ballighni-Android.apk over the old version. New report → safety check → Take photo. Keep this laptop awake and online. The old temporary tunnel expired; current website/backend: https://rise-gotta-long-providers.trycloudflare.com . The new APK includes it. Existing APK users can set it in Connection help.
+
+
+# Ballighni 1.3.1 — native Android networking
+
+A phone could open the website with Connected status while the APK could not reach the same backend. Enabled the bundled official CapacitorHttp fetch/XMLHttpRequest transport, moving remote requests through Android native networking. HTTPS and certificate validation remain enabled; backend origin controls are unchanged. The official configuration is documented at https://capacitorjs.com/docs/apis/http .
+
+Install this APK over 1.3.0, fully close and reopen it, then Connection help → Test connection. The settings subtitle identifies build 1.3.1. Current endpoint: https://rise-gotta-long-providers.trycloudflare.com . Camera capture and YOLO11m remain included.
+
+Verification: 21 automated reporting/camera/AI regression tests passed; Android build, signature, packaged native networking configuration and current HTTPS endpoint checked. The user's device is not attached, so this is a targeted repair pending confirmation on that phone, not a claim that its network behavior has been reproduced locally.
