@@ -81,7 +81,9 @@ async function refreshConnection() {
   } catch {
     workspaceConnected = false;
     status.textContent = window.Capacitor?.isNativePlatform?.()
-      ? "Connect a shared HTTPS backend to use live reports."
+      ? apiUrl
+        ? "Backend unreachable · check your connection or ask the host to restart sharing."
+        : "Backend address missing · open Connection help to set up this APK."
       : "Backend not connected · start the server or check the saved address.";
     $("#connection-bar").classList.add("disconnected");
   }
@@ -783,16 +785,24 @@ $("#auth-form").onsubmit = async (e) => {
   }
 };
 window.addEventListener("hashchange", route);
-if (token) {
-  try {
-    user = await api("/me");
-  } catch {
-    // A temporary network failure must not erase a still-valid session.
-  }
-}
+// Draw the interface immediately, even if the backend or session is offline.
 updateAccount();
 route();
-refreshConnection();
+void refreshConnection();
+if (token) {
+  void api("/me")
+    .then((result) => {
+      user = result;
+      updateAccount();
+      if (
+        ["cases", "review", "case"].includes(
+          location.hash.slice(1).split("/")[0],
+        )
+      )
+        route();
+    })
+    .catch(() => {});
+}
 setInterval(async () => {
   if (document.hidden) return;
   await refreshConnection();

@@ -3,10 +3,19 @@ let listening = false;
 const language = () =>
   document.documentElement.lang === "ar" ? "ar-AE" : "en-AE";
 let nativeBridge;
-const native = () =>
-  window.Capacitor?.isNativePlatform?.()
-    ? (nativeBridge ||= window.Capacitor.registerPlugin("BallighniVoice"))
-    : null;
+const native = () => {
+  const cap = window.Capacitor;
+  if (!cap?.isNativePlatform?.()) return null;
+  // Android injects nativePromise; registerPlugin belongs to the optional JS
+  // core runtime and is not supplied by the injected bridge alone.
+  if (typeof cap.nativePromise !== "function") return null;
+  return (nativeBridge ||= Object.fromEntries(
+    ["listen", "speak", "stop"].map((method) => [
+      method,
+      (options) => cap.nativePromise("BallighniVoice", method, options || {}),
+    ]),
+  ));
+};
 
 export function resolveVoiceCommand(value) {
   const text = String(value || "")
@@ -138,11 +147,16 @@ export async function speakText(value, status) {
 }
 
 export function stopVoice() {
-  recognition?.abort();
-  window.speechSynthesis?.cancel();
-  native()
-    ?.stop()
-    .catch(() => {});
+  // Optional speech services must never prevent routing or text entry.
+  try {
+    recognition?.abort();
+  } catch {}
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {}
+  try {
+    Promise.resolve(native()?.stop()).catch(() => {});
+  } catch {}
   document.body.classList.remove("voice-listening");
 }
 
