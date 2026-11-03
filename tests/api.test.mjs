@@ -295,3 +295,46 @@ test("complete reporting and human review lifecycle; access and validation", asy
   await call("/auth/logout", "POST", {}, owner);
   assert.equal((await call(`/cases/${id}`, "GET", null, owner)).status, 401);
 });
+
+test("evidence preserves fine photo detail within bounds and removes EXIF", async () => {
+  const owner = await account("detail_photo_test");
+  const created = await call(
+    "/cases",
+    "POST",
+    {
+      safe: true,
+      consent: true,
+      reporter_role: "driver",
+      location: "Synthetic image test",
+      event_time: new Date().toISOString(),
+      narrative: "Synthetic upload quality test only.",
+    },
+    owner,
+  );
+  assert.equal(created.status, 201);
+  const image = await sharp({
+    create: { width: 3800, height: 1900, channels: 3, background: "#8391a5" },
+  })
+    .withMetadata({ exif: { IFD0: { Artist: "test-only metadata" } } })
+    .jpeg({ quality: 98 })
+    .toBuffer();
+  const uploaded = await call(
+    `/cases/${created.data.id}/evidence`,
+    "POST",
+    { base64: image.toString("base64"), consent: true },
+    owner,
+  );
+  assert.equal(uploaded.status, 200);
+  const photo = uploaded.data.evidence[0];
+  const response = await fetch(
+    `${url}/cases/${created.data.id}/evidence/${photo.id}`,
+    { headers: { Authorization: `Bearer ${owner}` } },
+  );
+  assert.equal(response.status, 200);
+  const metadata = await sharp(
+    Buffer.from(await response.arrayBuffer()),
+  ).metadata();
+  assert.equal(metadata.width, 3072);
+  assert.equal(metadata.height, 1536);
+  assert.equal(metadata.exif, undefined);
+});

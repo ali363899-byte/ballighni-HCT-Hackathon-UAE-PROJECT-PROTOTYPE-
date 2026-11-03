@@ -461,8 +461,8 @@ async function api(req, url, res) {
         fail(415, "Use JPEG, PNG, or WebP.");
       bytes = await image
         .rotate()
-        .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 85 })
+        .resize(3072, 3072, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
         .toBuffer();
     } catch (e) {
       if (e.status) throw e;

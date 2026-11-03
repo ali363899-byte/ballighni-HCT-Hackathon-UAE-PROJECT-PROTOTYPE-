@@ -1,0 +1,19 @@
+# Ballighni scratch fine-tuning
+
+Select a free T4 GPU in Colab. This is a measured pilot, not a promise to detect every scratch. Only public dataset images are downloaded; personal reports, credentials and evidence are never uploaded. The current live detector stays unchanged until evaluation and manual review.
+
+Dataset: AutoDamageIQ by Tugberk Kalay, pinned b5abbf54bdf7c8817a4e20b6ab39c8f1fe98a0e5, uploader-declared CC BY 4.0. This pilot uses its VehiDE-prefixed subset to reduce direct CarDD reuse. Original-source rights and label quality need review before production. Dataset card: https://huggingface.co/datasets/tugberkkalay/autodamageiq-vehicle-damage-dataset .
+
+Train 800 source groups, validation 160, test 160. Exact image hashes are disjoint; VehiDE timestamp groups are separated. No vehicle-level metadata is available, so independent-vehicle separation and prior pretraining overlap cannot be guaranteed. Dataset labels are remapped to the existing model's six classes. Train at 1024 pixels for up to 12 epochs with early stopping; report scratch precision, recall, AP50 and AP50-95 plus all-class AP. The validation gate and one final held-out test comparison never automatically deploy a checkpoint.
+
+The dataset includes automatically generated labels. Tiny scratches and intact reflective panels need additional human annotation and a representative independent benchmark. A better metric on this subset is not proof of better real-world performance.
+
+## Current Colab run
+Notebook: https://colab.research.google.com/drive/1Y6wMefuJtT_kA7pLP7nBw_BZTtWmnB7I
+
+3 November 2026: a free Tesla T4 was allocated. The first preparation check correctly refused a mistaken date-only grouping rule. The corrected source-image grouping is in the script and notebook. Dataset preparation is running; training/evaluation results are not yet available. The app has NOT been updated with newly trained weights.
+
+## Image detail
+New backend uploads retain up to 3072 pixels on the longest edge at JPEG quality 95 with 4:4:4 chroma; EXIF is still removed. Existing stored images cannot regain discarded detail. A 22nd integration test verifies dimensions and metadata removal. This preprocessing repair is independent of whether fine-tuning beats the baseline.
+
+Keep the Colab notebook open. Free runtimes can disconnect; download the results ZIP when complete. The ZIP contains weights, split/hash manifest and comparison metrics. Review precision, recall and annotated examples before replacing the live detector.
