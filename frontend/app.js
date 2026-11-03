@@ -8,6 +8,7 @@ import {
 } from "./accessibility.js";
 import { mountCaseWorkflow } from "./case-workflow.js";
 import { setupLanguage } from "./language.js";
+import { mountAppeals } from "./appeals.js";
 import { mergeEvidencePhotos } from "./evidence-photos.js";
 applyAccessibility();
 setupLanguage();
@@ -372,7 +373,7 @@ async function cases(reviewer = false) {
       ? filtered
           .map(
             (c) =>
-              `<a class="case-row" href="#case/${c.id}"><div><strong>${escape(c.id)}</strong><small>${escape(c.reporter_role)} report · ${date(c.created_at)}</small></div><span class="location"><strong>${escape(c.location)}</strong></span>${badge(c.status)}</a>`,
+              `<a class="case-row" href="#case/${c.id}"><div><strong>${escape(c.id)}</strong><small>${escape(c.reporter_role)} report · ${date(c.created_at)}</small></div><span class="location"><strong>${escape(c.location)}</strong></span>${badge(c.status)}${c.appeal_pending ? '<span class="badge">Appeal pending</span>' : ""}</a>`,
           )
           .join("")
       : `<div class="empty"><h2>${list.length ? "No matching cases." : "A clear space for your next step."}</h2><p>${list.length ? "Try another reference or location." : reviewer ? "Submitted reports will appear here." : "Start a driver or witness report to see its timeline here."}</p><a href="#report" class="primary">Start a report →</a></div>`;
@@ -602,11 +603,22 @@ async function detail(id, synthetic = false) {
           toast("Some case details could not load. Refresh to retry.", true);
       });
   if (!synthetic) mountAIWorkflow({ c, api, escape, toast, user });
-  if (!synthetic) void loadEvidence();
+  if (!synthetic) {
+    mountAppeals({
+      c,
+      user,
+      post,
+      escape,
+      date,
+      refresh: () => detail(id),
+      toast,
+    });
+    void loadEvidence();
+  }
 }
 function settings() {
   $("#main").innerHTML =
-    `<div class="wizard">${heading("Connect your workspace.", "Use the same backend for the website and Android app. Android build 1.3.1 uses native networking.")}<form id="settings-form" class="panel"><label>Backend URL <small>Leave empty when this website is served by your backend. Android requires your shared HTTPS backend.</small><input type="url" id="api-url" value="${escape(apiUrl)}" placeholder="https://your-backend.example.com"></label><p>Only connect to a server you trust. Your account credentials and permitted evidence will be sent to this address. Changing servers signs you out.</p>${(apiUrl || location.origin).includes(".trycloudflare.com") ? '<div class="notice warning">Temporary sharing: the host computer must stay awake with Ballighni running. Restarting sharing creates a new address; update this field on both phones.</div>' : ""}<div class="button-row"><button class="primary">Save connection →</button><button type="button" class="secondary" id="test-connection">Test connection</button></div><div id="connection-result" class="notice" hidden></div></form></div>`;
+    `<div class="wizard">${heading("Connect your workspace.", "Use the same backend for the website and Android app. Android build 1.4.0 uses native networking.")}<form id="settings-form" class="panel"><label>Backend URL <small>Leave empty when this website is served by your backend. Android requires your shared HTTPS backend.</small><input type="url" id="api-url" value="${escape(apiUrl)}" placeholder="https://your-backend.example.com"></label><p>Only connect to a server you trust. Your account credentials and permitted evidence will be sent to this address. Changing servers signs you out.</p>${(apiUrl || location.origin).includes(".trycloudflare.com") ? '<div class="notice warning">Temporary sharing: the host computer must stay awake with Ballighni running. Restarting sharing creates a new address; update this field on both phones.</div>' : ""}<div class="button-row"><button class="primary">Save connection →</button><button type="button" class="secondary" id="test-connection">Test connection</button></div><div id="connection-result" class="notice" hidden></div></form></div>`;
   $("#settings-form").onsubmit = (e) => {
     e.preventDefault();
     const value = $("#api-url").value.trim().replace(/\/$/, "");
@@ -753,9 +765,25 @@ $("#account-button").onclick = async () => {
     toast("Signed out.");
   } else showAuth();
 };
-$(".close").onclick = () => $("#auth-dialog").close();
+$(".close").onclick = () => {
+  $("#auth-dialog").close();
+  $("#auth-form").reset();
+};
+function syncIdentityFields() {
+  const method = $("#login-method").value;
+  const identity = method !== "username";
+  $("#auth-document-label").hidden = !identity;
+  $("#auth-country-label").hidden = method !== "tourist";
+  $("#auth-identity-consent").hidden = !identity || !register;
+  $("#auth-username-label").hidden = identity && !register;
+  $("#auth-document-title").textContent =
+    method === "resident" ? "Emirates ID (15 digits)" : "Passport number";
+  $("#identity-number").inputMode = method === "resident" ? "numeric" : "text";
+}
+$("#login-method").onchange = syncIdentityFields;
 function setAuthMode(value) {
   register = value;
+  syncIdentityFields();
   $("#auth-title").textContent = register
     ? "Make space for clarity."
     : "Welcome back.";
@@ -775,7 +803,11 @@ $("#auth-form").onsubmit = async (e) => {
   e.preventDefault();
   const b = Object.fromEntries(new FormData(e.currentTarget));
   b.username = String(b.username || "").trim();
-  if (!/^[a-zA-Z0-9_.-]{3,50}$/.test(b.username)) {
+  b.identity_consent = e.currentTarget.elements.identity_consent.checked;
+  if (
+    (register || b.login_method === "username") &&
+    !/^[a-zA-Z0-9_.-]{3,50}$/.test(b.username)
+  ) {
     $("#auth-error").textContent =
       "Use a username with 3–50 English letters, numbers, dots, underscores or hyphens.";
     return;

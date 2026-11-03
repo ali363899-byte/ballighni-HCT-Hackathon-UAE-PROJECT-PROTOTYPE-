@@ -77,6 +77,43 @@
       <p>Keep your reports and evidence in one place.</p>
       <form id="auth-form" novalidate>
         <label
+          >Sign-in method<select name="login_method" id="login-method">
+            <option value="username">Username / team account</option>
+            <option value="resident">Resident — Emirates ID</option>
+            <option value="tourist">Tourist — passport</option>
+          </select></label
+        >
+        <div class="notice">
+          Prototype account login only. Emirates ID and passport details are not
+          verified with any government service. Use fictional details for
+          testing.
+        </div>
+        <label id="auth-document-label" hidden
+          ><span id="auth-document-title">Emirates ID</span
+          ><input
+            name="identity_number"
+            id="identity-number"
+            autocomplete="off"
+            maxlength="24"
+            spellcheck="false"
+        /></label>
+        <label id="auth-country-label" hidden
+          >Passport issuing country <small>Two-letter code, e.g. AE or GB</small
+          ><input
+            name="issuing_country"
+            id="issuing-country"
+            autocomplete="off"
+            minlength="2"
+            maxlength="2"
+            autocapitalize="characters"
+        /></label>
+        <label id="auth-identity-consent" class="checkbox" hidden
+          ><input type="checkbox" name="identity_consent" /><span
+            >I agree to use this number as a private prototype login identifier.
+            It is not identity verification.</span
+          ></label
+        >
+        <label id="auth-username-label"
           >Username
           <small
             >3–50 English letters, numbers, dots, underscores or hyphens</small

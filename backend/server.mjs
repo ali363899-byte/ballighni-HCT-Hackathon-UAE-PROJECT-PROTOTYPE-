@@ -1,4 +1,5 @@
 import http from "node:http";
+import { createIdentityAuth } from "./identity-auth.mjs";
 import { DatabaseSync } from "node:sqlite";
 import {
   randomBytes,
@@ -46,6 +47,9 @@ const run = (sql, ...args) => db.prepare(sql).run(...args);
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
 };
+const identities = createIdentityAuth({ db, q, run, dataDir, fail });
+db.exec(`CREATE TABLE IF NOT EXISTS appeals(id TEXT PRIMARY KEY,case_id TEXT REFERENCES cases(id),owner_id TEXT REFERENCES users(id),reason TEXT NOT NULL,status TEXT NOT NULL,response TEXT,created_at TEXT NOT NULL,decided_at TEXT);
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_appeal ON appeals(case_id) WHERE status='pending';`);
 function text(value, field, min = 1, max = 3000) {
   if (
     typeof value !== "string" ||
@@ -157,6 +161,10 @@ function fullCase(c, user) {
   const result = {
     ...c,
     evidence: evidenceList(c.id),
+    appeals: all(
+      "SELECT id,reason,status,response,created_at,decided_at FROM appeals WHERE case_id=? ORDER BY created_at",
+      c.id,
+    ),
     updates: all(
       "SELECT action,reason,created_at FROM updates WHERE case_id=? ORDER BY id",
       c.id,
@@ -273,6 +281,22 @@ async function api(req, url, res) {
         400,
         "Use letters, numbers, dots, underscores or hyphens for your username.",
       );
+    const identity = identities.prepare(b);
+    if (identity && b.identity_consent !== true)
+      fail(
+        400,
+        "Agree to use your identity number as a private prototype login identifier.",
+      );
+    if (
+      identity &&
+      username.toUpperCase().replace(/[ -]/g, "") === identity.number
+    )
+      fail(400, "Choose a username different from your identity number.");
+    if (identities.exists(identity))
+      fail(
+        409,
+        "An account cannot be created with those login details. Try signing in.",
+      );
     const password = text(b.password, "Password", 12, 128);
     const salt = randomBytes(16).toString("hex");
     const role = b.reviewer_code
@@ -282,23 +306,30 @@ async function api(req, url, res) {
       : "citizen";
     if (q("SELECT id FROM users WHERE username=?", username))
       fail(409, "That username is taken.");
-    run(
-      "INSERT INTO users VALUES(?,?,?,?)",
-      randomUUID(),
-      username,
-      `${salt}:${scryptSync(password, salt, 64).toString("hex")}`,
-      role,
-    );
+    transaction(() => {
+      const userId = randomUUID();
+      run(
+        "INSERT INTO users VALUES(?,?,?,?)",
+        userId,
+        username,
+        `${salt}:${scryptSync(password, salt, 64).toString("hex")}`,
+        role,
+      );
+      identities.attach(userId, identity);
+    });
     res.statusCode = 201;
     return { message: "Account created. Please sign in." };
   }
   if (route === "/api/auth/login" && method === "POST") {
     rate(`login:${req.socket.remoteAddress}`, 12);
     const b = await body(req);
-    const user = q(
-      "SELECT * FROM users WHERE username=?",
-      text(b.username, "Username", 3, 50).toLowerCase(),
-    );
+    const user =
+      b.login_method && b.login_method !== "username"
+        ? identities.lookup(b)
+        : q(
+            "SELECT * FROM users WHERE username=?",
+            text(b.username, "Username", 3, 50).toLowerCase(),
+          );
     const password = text(b.password, "Password", 1, 128);
     const [salt, hash] = (
       user?.password || `${"0".repeat(32)}:${"0".repeat(128)}`
@@ -347,6 +378,10 @@ async function api(req, url, res) {
       status: row.status,
       created_at: row.created_at,
       ...JSON.parse(row.body),
+      appeal_pending: !!q(
+        "SELECT id FROM appeals WHERE case_id=? AND status='pending'",
+        row.id,
+      ),
     }));
   if (route === "/api/cases" && method === "POST") {
     rate(`create:${user.id}`, 15);
@@ -407,7 +442,7 @@ async function api(req, url, res) {
     return fullCase(c, user);
   }
   const match = route.match(
-    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|ai-cancel|submit|status|link|respond|export|findings)(?:\/([a-f0-9-]+))?)?$/,
+    /^\/api\/cases\/([A-Z0-9-]+)(?:\/(evidence|analyze|ai-cancel|submit|status|link|respond|export|findings|appeal-request|appeal-decision)(?:\/([a-f0-9-]+))?)?$/,
   );
   if (!match) fail(404, "Endpoint not found.");
   const [, id, action, eid] = match;
@@ -415,6 +450,68 @@ async function api(req, url, res) {
   const owner =
     q("SELECT owner_id FROM cases WHERE id=?", id).owner_id === user.id;
   if (!action && method === "GET") return fullCase(c, user);
+  if (action === "appeal-request" && method === "POST") {
+    if (!owner || user.role === "reviewer")
+      fail(403, "Only the report owner can request an appeal.");
+    if (c.status === "draft")
+      fail(409, "Submit your report before requesting review.");
+    const b = await body(req);
+    if (b.confirm !== true)
+      fail(400, "Confirm this is a prototype request for human review.");
+    const reason = text(b.reason, "Appeal reason", 20, 3000);
+    if (q("SELECT id FROM appeals WHERE case_id=? AND status='pending'", id))
+      fail(409, "An appeal is already awaiting review.");
+    rate(`appeal:${user.id}`, 3);
+    transaction(() => {
+      run(
+        "INSERT INTO appeals(id,case_id,owner_id,reason,status,created_at) VALUES(?,?,?,?,?,?)",
+        randomUUID(),
+        id,
+        user.id,
+        reason,
+        "pending",
+        now(),
+      );
+      audit(
+        id,
+        user,
+        "appeal_requested",
+        "Owner requested a further human review.",
+      );
+    });
+    return fullCase(c, user);
+  }
+  if (action === "appeal-decision" && method === "POST") {
+    if (user.role !== "reviewer") fail(403, "Reviewer access is required.");
+    const b = await body(req);
+    if (!["accepted", "rejected"].includes(b.decision))
+      fail(400, "Choose accept or decline.");
+    const appeal = q(
+      "SELECT * FROM appeals WHERE id=? AND case_id=?",
+      String(b.appeal_id || ""),
+      id,
+    );
+    if (!appeal) fail(404, "Appeal not found.");
+    if (appeal.status !== "pending")
+      fail(409, "This appeal has already been reviewed.");
+    const response = text(b.response, "Reviewer response", 10, 2000);
+    transaction(() => {
+      run(
+        "UPDATE appeals SET status=?,response=?,decided_at=? WHERE id=?",
+        b.decision,
+        response,
+        now(),
+        appeal.id,
+      );
+      if (b.decision === "accepted") {
+        c.status = "review";
+        save(c);
+      }
+      audit(id, user, `appeal_${b.decision}`, response);
+    });
+    return fullCase(c, user);
+  }
+
   if (action === "export" && method === "GET") {
     res.setHeader("Content-Disposition", `attachment; filename="${id}.json"`);
     return fullCase(c, user);
