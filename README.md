@@ -1,6 +1,6 @@
 # Ballighni · Fantastic Four
 
-One report. One platform. A smarter response.
+Ballighni (بلغني) is a bilingual web and Android prototype that Fantastic Four built for UAE Hackathon 2026 (Sharjah & Ajman). Drivers and witnesses submit evidence and separate accounts. Users can review AI-assisted drafts before submitting, and human reviewers can check the original evidence and update the case status.
 
 **Start with [START-HERE.md](START-HERE.md).** It links the repository map, Android setup, backend connection fix, accessibility tools, shared participant reports and the PDF checklist.
 
@@ -92,3 +92,7 @@ Free phone sharing: run `START-SHARED-BALLIGHNI.cmd` on the host Windows compute
 
 
 Version 1.2 adds the navy/white/mint identity, voice/dictation and native Android speech, four AI stages, sourced conditional AED references and connection of already-submitted testimonies. Start with [the laptop guide](docs/LAPTOP-HOSTING.md), [AI workflow](docs/AI-WORKFLOW.md), [accessibility guide](docs/ACCESSIBILITY.md), and [delivery report](docs/DELIVERY-REPORT.md).
+
+## License
+
+The original Ballighni code and documentation are available under the [MIT License](LICENSE). Third-party dependencies, model weights and datasets are governed by their respective terms. See [AI model provenance](docs/AI-MODEL.md).
